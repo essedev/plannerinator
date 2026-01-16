@@ -27,7 +27,6 @@ import {
 const OPENROUTER_API_URL = "https://openrouter.ai/api/v1/chat/completions";
 const MODEL = process.env.OPENROUTER_MODEL || "anthropic/claude-3.5-haiku";
 
-
 /**
  * OpenRouter API response types (OpenAI-compatible format)
  */
@@ -239,7 +238,13 @@ export async function sendAiMessage(userMessage: string, conversationId?: string
         const executionTime = Date.now() - startTime;
 
         // Log tool result
-        await aiLogger.logToolResult(toolName, result, session.user.id, executionTime, conversation.id);
+        await aiLogger.logToolResult(
+          toolName,
+          result,
+          session.user.id,
+          executionTime,
+          conversation.id
+        );
 
         // Add tool result to messages
         messages.push({
@@ -427,4 +432,3 @@ export async function deleteConversation(conversationId: string) {
     };
   }
 }
-

@@ -20,10 +20,7 @@ import {
 /**
  * Create temporal context from current time
  */
-export function createTemporalContext(
-  timezone = "Europe/Rome",
-  locale = "it-IT"
-): TemporalContext {
+export function createTemporalContext(timezone = "Europe/Rome", locale = "it-IT"): TemporalContext {
   const now = new Date();
 
   const dateFormatter = new Intl.DateTimeFormat(locale, {
@@ -70,10 +67,7 @@ function formatSection(section: PromptSection): string {
 /**
  * Build the complete system prompt from all sections
  */
-export function buildSystemPrompt(
-  ctx: PromptContext,
-  options: PromptBuilderOptions = {}
-): string {
+export function buildSystemPrompt(ctx: PromptContext, options: PromptBuilderOptions = {}): string {
   const { includeExamples = true } = options;
 
   // Collect all sections

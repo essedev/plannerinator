@@ -130,9 +130,7 @@ export function ChatMessage({ message }: ChatMessageProps) {
         {!isUser && (
           <div className="mt-2 pt-2 border-t border-border/50">
             {message.toolsUsed && message.toolsUsed.length > 0 ? (
-              <p className="text-xs opacity-70">
-                ✓ Azioni eseguite: {message.toolsUsed.length}
-              </p>
+              <p className="text-xs opacity-70">✓ Azioni eseguite: {message.toolsUsed.length}</p>
             ) : (
               <p className="text-xs opacity-50">
                 💬 Risposta diretta (nessuna azione sul database)

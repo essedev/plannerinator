@@ -14,6 +14,7 @@ Execute these steps autonomously:
    - If doesn't exist: inform user to run `/changelog` first and STOP
    - Read package.json to get current version
    - Check git status to see what files are modified (will be included in release commit)
+   - **Archive check**: Count lines in CHANGELOG.md - if >1000 lines, suggest running `/archive-changelog` after release
 
 2. **Determine next version automatically**:
    - Parse current version from package.json

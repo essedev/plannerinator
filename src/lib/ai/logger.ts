@@ -258,11 +258,14 @@ class AILogger {
   async logVerboseMessages(messages: unknown[], userId: string, conversationId?: string) {
     if (!this.verboseLoggingEnabled) return;
 
-    await this.debug(`📤 VERBOSE: Full message history sent to OpenRouter (${messages.length} messages)`, {
-      userId,
-      conversationId,
-      messages,
-    });
+    await this.debug(
+      `📤 VERBOSE: Full message history sent to OpenRouter (${messages.length} messages)`,
+      {
+        userId,
+        conversationId,
+        messages,
+      }
+    );
   }
 
   /**

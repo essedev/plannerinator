@@ -286,11 +286,13 @@ export const aiTools = [
           },
           includeDeleted: {
             type: "boolean",
-            description: "Include deleted entities in results (default: false). Only set to true if user explicitly asks for deleted items.",
+            description:
+              "Include deleted entities in results (default: false). Only set to true if user explicitly asks for deleted items.",
           },
           includeArchived: {
             type: "boolean",
-            description: "Include archived entities in results (default: false). Only set to true if user explicitly asks for archived items.",
+            description:
+              "Include archived entities in results (default: false). Only set to true if user explicitly asks for archived items.",
           },
         },
         required: ["entityTypes"],
@@ -364,11 +366,13 @@ export const aiTools = [
           },
           includeDeleted: {
             type: "boolean",
-            description: "Include deleted entities in search results (default: false). Only set to true if user explicitly asks for deleted items.",
+            description:
+              "Include deleted entities in search results (default: false). Only set to true if user explicitly asks for deleted items.",
           },
           includeArchived: {
             type: "boolean",
-            description: "Include archived entities in search results (default: false). Only set to true if user explicitly asks for archived items.",
+            description:
+              "Include archived entities in search results (default: false). Only set to true if user explicitly asks for archived items.",
           },
         },
         required: ["query"],

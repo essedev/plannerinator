@@ -29,6 +29,11 @@ Execute these steps autonomously:
    - Focus on "what" changed and "why it matters" to users
    - Group related changes together
    - Be specific but concise (one line per change)
+   - **For dependency updates**: Group them into a single "Dependencies" section with maximum 2-3 lines
+     - Line 1: Summary (e.g., "Updated Next.js to X.Y.Z, React to A.B.C, and N+ other dependencies")
+     - Line 2 (optional): Major version updates if any
+     - Line 3 (optional): Notable updates that impact functionality
+     - DO NOT list every single package update - focus only on significant framework/library updates
 
 4. **Update CHANGELOG.md automatically**:
    - If [Unreleased] section exists: Add new entries there
@@ -49,3 +54,5 @@ Execute these steps autonomously:
 - Only show the user the final changelog diff
 - If there are no meaningful changes to document, inform the user
 - Focus on user-facing changes, not internal refactoring (unless significant)
+- Keep changelog concise - avoid excessive detail that doesn't benefit end users
+- For dependency updates: Group into 2-3 lines maximum, don't list every package
