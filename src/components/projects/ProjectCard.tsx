@@ -1,16 +1,9 @@
 "use client";
 
-import { ConfirmDialog } from "@/components/common";
+import { ConfirmDialog, EntityCardMenu } from "@/components/common";
 import { Badge } from "@/components/ui/badge";
-import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader } from "@/components/ui/card";
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuSeparator,
-  DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu";
+import { DropdownMenuItem } from "@/components/ui/dropdown-menu";
 import {
   archiveProject,
   completeProject,
@@ -20,22 +13,12 @@ import {
 } from "@/features/projects/actions";
 import { formatDueDate, formatShortDate, getDueDateColorClass } from "@/lib/dates";
 import { PROJECT_STATUS_LABELS } from "@/lib/labels";
-import { Archive, CheckCircle, Copy, Edit, MoreVertical, RotateCcw, Trash2 } from "lucide-react";
+import { PROJECT_STATUS_COLORS, COMMON_COLORS } from "@/lib/colors";
+import { CheckCircle } from "lucide-react";
 import Link from "next/link";
-import { useRouter } from "next/navigation";
-import { useState, useTransition } from "react";
 import { toast } from "sonner";
-
-/**
- * Project status colors for badges
- */
-const PROJECT_STATUS_COLORS = {
-  active: "bg-green-500/10 text-green-700 dark:text-green-300",
-  on_hold: "bg-yellow-500/10 text-yellow-700 dark:text-yellow-300",
-  completed: "bg-blue-500/10 text-blue-700 dark:text-blue-300",
-  archived: "bg-gray-500/10 text-gray-700 dark:text-gray-300",
-  cancelled: "bg-red-500/10 text-red-700 dark:text-red-300",
-} as const;
+import { useEntityActions } from "@/hooks/use-entity-actions";
+import { handleActionError } from "@/lib/error-handler";
 
 interface ProjectCardProps {
   project: {
@@ -54,66 +37,35 @@ interface ProjectCardProps {
 }
 
 export function ProjectCard({ project }: ProjectCardProps) {
-  const router = useRouter();
-  const [isPending, startTransition] = useTransition();
-  const [showDeleteDialog, setShowDeleteDialog] = useState(false);
+  const {
+    isPending,
+    startTransition,
+    showDeleteDialog,
+    setShowDeleteDialog,
+    handleDelete,
+    handleDuplicate,
+    handleArchive,
+    handleRestore,
+  } = useEntityActions({
+    entityId: project.id,
+    entityTitle: project.name,
+    entityType: "project",
+    actions: {
+      delete: deleteProject,
+      duplicate: duplicateProject,
+      archive: archiveProject,
+      restore: restoreProject,
+    },
+    duplicateRedirectPath: (id) => `/dashboard/projects/${id}`,
+  });
 
-  const handleDeleteConfirm = async () => {
-    setShowDeleteDialog(false);
-
-    startTransition(async () => {
-      try {
-        await deleteProject(project.id);
-        toast.success("Project deleted");
-      } catch (error) {
-        toast.error(error instanceof Error ? error.message : "Failed to delete project");
-      }
-    });
-  };
-
-  const handleDuplicate = async () => {
-    startTransition(async () => {
-      try {
-        const result = await duplicateProject(project.id);
-        toast.success("Project duplicated");
-        if (result.project) {
-          router.push(`/dashboard/projects/${result.project.id}`);
-        }
-      } catch (error) {
-        toast.error(error instanceof Error ? error.message : "Failed to duplicate project");
-      }
-    });
-  };
-
-  const handleArchive = async () => {
-    startTransition(async () => {
-      try {
-        await archiveProject(project.id);
-        toast.success("Project archived");
-      } catch (error) {
-        toast.error(error instanceof Error ? error.message : "Failed to archive project");
-      }
-    });
-  };
-
-  const handleRestore = async () => {
-    startTransition(async () => {
-      try {
-        await restoreProject(project.id);
-        toast.success("Project restored");
-      } catch (error) {
-        toast.error(error instanceof Error ? error.message : "Failed to restore project");
-      }
-    });
-  };
-
-  const handleComplete = async () => {
+  const handleComplete = () => {
     startTransition(async () => {
       try {
         await completeProject(project.id);
         toast.success("Project marked as completed");
       } catch (error) {
-        toast.error(error instanceof Error ? error.message : "Failed to complete project");
+        handleActionError(error);
       }
     });
   };
@@ -122,7 +74,6 @@ export function ProjectCard({ project }: ProjectCardProps) {
     <Card className="hover:shadow-md transition-shadow flex flex-col">
       <CardHeader className="pb-3">
         <div className="flex items-start justify-between gap-2">
-          {/* Project Icon & Title */}
           <Link href={`/dashboard/projects/${project.id}`} className="flex-1 min-w-0 group">
             <div className="flex items-start gap-3">
               {project.icon && <span className="text-2xl shrink-0">{project.icon}</span>}
@@ -139,25 +90,17 @@ export function ProjectCard({ project }: ProjectCardProps) {
             </div>
           </Link>
 
-          {/* Actions Menu */}
-          <DropdownMenu>
-            <DropdownMenuTrigger asChild>
-              <Button variant="ghost" size="icon" className="h-8 w-8 shrink-0">
-                <MoreVertical className="h-4 w-4" />
-              </Button>
-            </DropdownMenuTrigger>
-            <DropdownMenuContent align="end">
-              <DropdownMenuItem asChild>
-                <Link href={`/dashboard/projects/${project.id}`} className="cursor-pointer">
-                  <Edit className="h-4 w-4 mr-2" />
-                  View Details
-                </Link>
-              </DropdownMenuItem>
-              <DropdownMenuItem onClick={handleDuplicate} disabled={isPending}>
-                <Copy className="h-4 w-4 mr-2" />
-                Duplicate
-              </DropdownMenuItem>
-              {project.status === "active" && (
+          <EntityCardMenu
+            editHref={`/dashboard/projects/${project.id}`}
+            editLabel="View Details"
+            isPending={isPending}
+            isArchived={!!project.archivedAt}
+            onDuplicate={handleDuplicate}
+            onArchive={handleArchive}
+            onRestore={handleRestore}
+            onDelete={() => setShowDeleteDialog(true)}
+            extraItems={
+              project.status === "active" ? (
                 <DropdownMenuItem
                   onClick={handleComplete}
                   disabled={isPending}
@@ -166,36 +109,14 @@ export function ProjectCard({ project }: ProjectCardProps) {
                   <CheckCircle className="h-4 w-4 mr-2" />
                   Mark as Completed
                 </DropdownMenuItem>
-              )}
-              {project.archivedAt ? (
-                <DropdownMenuItem onClick={handleRestore} disabled={isPending}>
-                  <RotateCcw className="h-4 w-4 mr-2" />
-                  Restore
-                </DropdownMenuItem>
-              ) : (
-                <DropdownMenuItem onClick={handleArchive} disabled={isPending}>
-                  <Archive className="h-4 w-4 mr-2" />
-                  Archive
-                </DropdownMenuItem>
-              )}
-              <DropdownMenuSeparator />
-              <DropdownMenuItem
-                onClick={() => setShowDeleteDialog(true)}
-                disabled={isPending}
-                className="text-destructive focus:text-destructive cursor-pointer"
-              >
-                <Trash2 className="h-4 w-4 mr-2" />
-                Delete
-              </DropdownMenuItem>
-            </DropdownMenuContent>
-          </DropdownMenu>
+              ) : undefined
+            }
+          />
         </div>
       </CardHeader>
 
       <CardContent className="pt-0">
-        {/* Status & Dates */}
         <div className="flex flex-wrap items-center gap-2 min-w-0">
-          {/* Status Badge */}
           <Badge
             variant="outline"
             className={`${PROJECT_STATUS_COLORS[project.status]} shrink-0`}
@@ -206,17 +127,12 @@ export function ProjectCard({ project }: ProjectCardProps) {
             {PROJECT_STATUS_LABELS[project.status]}
           </Badge>
 
-          {/* Archived Badge */}
           {project.archivedAt && (
-            <Badge
-              variant="outline"
-              className="bg-gray-500/10 text-gray-700 dark:text-gray-300 shrink-0"
-            >
+            <Badge variant="outline" className={`${COMMON_COLORS.archived} shrink-0`}>
               Archived
             </Badge>
           )}
 
-          {/* Due Date */}
           {project.endDate && (
             <Badge
               variant="outline"
@@ -226,7 +142,6 @@ export function ProjectCard({ project }: ProjectCardProps) {
             </Badge>
           )}
 
-          {/* Start Date */}
           {project.startDate && (
             <span className="text-xs text-muted-foreground whitespace-nowrap">
               Started {formatShortDate(project.startDate)}
@@ -235,11 +150,10 @@ export function ProjectCard({ project }: ProjectCardProps) {
         </div>
       </CardContent>
 
-      {/* Delete Confirmation Dialog */}
       <ConfirmDialog
         open={showDeleteDialog}
         onOpenChange={setShowDeleteDialog}
-        onConfirm={handleDeleteConfirm}
+        onConfirm={handleDelete}
         title="Delete Project"
         description={`Are you sure you want to delete "${project.name}"? This will also delete all related tasks, events, and notes. This action cannot be undone.`}
         confirmText="Delete"

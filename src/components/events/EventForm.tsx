@@ -132,14 +132,13 @@ export function EventForm({ mode, initialData, parentEventId, selectedTags }: Ev
 
     try {
       if (mode === "create") {
-        const result = await createEvent({
+        const createdEvent = await createEvent({
           ...data,
           parentEventId: parentEventId || null,
         });
 
-        // Handle tag creation and assignment if tags were selected
-        if (result.event && selectedTags) {
-          await createAndAssignTags(selectedTags, "event", result.event.id);
+        if (createdEvent && selectedTags) {
+          await createAndAssignTags(selectedTags, "event", createdEvent.id);
         }
 
         toast.success("Event created successfully!");

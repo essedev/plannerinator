@@ -76,15 +76,13 @@ export function TaskForm({ mode, initialData, parentTaskId, selectedTags }: Task
 
     try {
       if (mode === "create") {
-        // Include parentTaskId from props in create mode
-        const result = await createTask({
+        const createdTask = await createTask({
           ...data,
           parentTaskId: parentTaskId || null,
         });
 
-        // Handle tag creation and assignment if tags were selected
-        if (result.task && selectedTags) {
-          await createAndAssignTags(selectedTags, "task", result.task.id);
+        if (createdTask && selectedTags) {
+          await createAndAssignTags(selectedTags, "task", createdTask.id);
         }
 
         toast.success("Task created successfully!");

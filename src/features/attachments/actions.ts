@@ -14,419 +14,246 @@ import {
 } from "./schema";
 import { getUserStorageQuota } from "./queries";
 import { r2 } from "@/lib/r2-client";
+import { parseInput, errors } from "@/lib/errors";
 
 // ============================================================================
 // UPLOAD OPERATIONS
 // ============================================================================
 
-/**
- * Generate a presigned URL for direct upload to R2
- *
- * This allows client-side upload directly to R2, bypassing server bandwidth.
- * After upload completes, client calls `confirmAttachmentUpload` to save metadata.
- *
- * @param input - File metadata
- * @returns Presigned upload URL and storage key
- * @throws Error if user is not authenticated or quota exceeded
- */
 export async function generateUploadUrl(input: unknown) {
   const session = await getSession();
-
   if (!session?.user) {
-    throw new Error("Unauthorized: You must be logged in to upload files");
+    throw errors.unauthorized();
   }
 
-  // Validate input
-  const data = createAttachmentSchema.parse(input);
+  const data = parseInput(createAttachmentSchema, input);
 
-  try {
-    // Check storage quota
-    const quota = await getUserStorageQuota();
-    if (quota.availableBytes < data.fileSize) {
-      throw new Error(
-        `Storage quota exceeded. You have ${(quota.availableBytes / 1024 / 1024).toFixed(2)}MB available, but need ${(data.fileSize / 1024 / 1024).toFixed(2)}MB`
-      );
-    }
-
-    // Generate unique storage key
-    const timestamp = Date.now();
-    const randomString = Math.random().toString(36).substring(2, 15);
-    const sanitizedFileName = data.fileName.replace(/[^a-zA-Z0-9.-]/g, "_");
-    const storageKey = `${session.user.id}/${data.entityType}/${data.entityId}/${timestamp}-${randomString}-${sanitizedFileName}`;
-
-    // Generate presigned URL (valid for 15 minutes)
-    const uploadUrl = await r2.getUploadUrl({
-      Key: storageKey,
-      ContentType: data.mimeType,
-    });
-
-    return {
-      success: true,
-      uploadUrl,
-      storageKey,
-    };
-  } catch (error) {
-    console.error("Error generating upload URL:", error);
-    if (error instanceof Error) {
-      throw error;
-    }
-    throw new Error("Failed to generate upload URL");
+  const quota = await getUserStorageQuota();
+  if (quota.availableBytes < data.fileSize) {
+    throw errors.invalidInput(
+      `Storage quota exceeded. You have ${(quota.availableBytes / 1024 / 1024).toFixed(2)}MB available, but need ${(data.fileSize / 1024 / 1024).toFixed(2)}MB`
+    );
   }
+
+  const timestamp = Date.now();
+  const randomString = Math.random().toString(36).substring(2, 15);
+  const sanitizedFileName = data.fileName.replace(/[^a-zA-Z0-9.-]/g, "_");
+  const storageKey = `${session.user.id}/${data.entityType}/${data.entityId}/${timestamp}-${randomString}-${sanitizedFileName}`;
+
+  const uploadUrl = await r2.getUploadUrl({
+    Key: storageKey,
+    ContentType: data.mimeType,
+  });
+
+  return { uploadUrl, storageKey };
 }
 
-/**
- * Confirm attachment upload and save metadata to database
- *
- * Called after client successfully uploads file to R2 using presigned URL.
- *
- * @param input - File metadata with storageKey from generateUploadUrl
- * @returns Created attachment record
- * @throws Error if user is not authenticated or validation fails
- */
 export async function confirmAttachmentUpload(
   input: CreateAttachmentInput & { storageKey: string }
 ) {
   const session = await getSession();
-
   if (!session?.user) {
-    throw new Error("Unauthorized: You must be logged in to upload files");
+    throw errors.unauthorized();
   }
 
-  // Validate input
-  const data = createAttachmentSchema.parse(input);
+  const data = parseInput(createAttachmentSchema, input);
 
-  try {
-    // Verify storage key belongs to this user
-    if (!input.storageKey.startsWith(session.user.id)) {
-      throw new Error("Invalid storage key");
-    }
-
-    // Create attachment record
-    const [createdAttachment] = await db
-      .insert(attachment)
-      .values({
-        userId: session.user.id,
-        entityType: data.entityType,
-        entityId: data.entityId,
-        fileName: data.fileName,
-        fileSize: data.fileSize,
-        mimeType: data.mimeType,
-        storageKey: input.storageKey,
-        storageUrl: null, // Using private bucket with signed URLs
-        metadata: data.metadata || {},
-      })
-      .returning();
-
-    // Update user storage used
-    await db
-      .update(user)
-      .set({
-        storageUsedBytes: sql`${user.storageUsedBytes} + ${data.fileSize}`,
-      })
-      .where(eq(user.id, session.user.id));
-
-    // Revalidate relevant pages
-    revalidatePath(`/dashboard/${data.entityType}s`);
-    revalidatePath(`/dashboard/${data.entityType}s/${data.entityId}`);
-
-    return { success: true, attachment: createdAttachment };
-  } catch (error) {
-    console.error("Error confirming attachment upload:", error);
-    if (error instanceof Error) {
-      throw error;
-    }
-    throw new Error("Failed to confirm attachment upload");
+  if (!input.storageKey.startsWith(session.user.id)) {
+    throw errors.forbidden("Invalid storage key");
   }
+
+  const [createdAttachment] = await db
+    .insert(attachment)
+    .values({
+      userId: session.user.id,
+      entityType: data.entityType,
+      entityId: data.entityId,
+      fileName: data.fileName,
+      fileSize: data.fileSize,
+      mimeType: data.mimeType,
+      storageKey: input.storageKey,
+      storageUrl: null,
+      metadata: data.metadata || {},
+    })
+    .returning();
+
+  await db
+    .update(user)
+    .set({
+      storageUsedBytes: sql`${user.storageUsedBytes} + ${data.fileSize}`,
+    })
+    .where(eq(user.id, session.user.id));
+
+  revalidatePath(`/dashboard/${data.entityType}s`);
+  revalidatePath(`/dashboard/${data.entityType}s/${data.entityId}`);
+
+  return createdAttachment;
 }
 
 // ============================================================================
 // DELETE OPERATIONS
 // ============================================================================
 
-/**
- * Delete an attachment
- *
- * Removes file from R2 and database record.
- *
- * @param id - Attachment UUID
- * @returns Success status
- * @throws Error if user is not authenticated, attachment not found, or not authorized
- */
 export async function deleteAttachment(id: string) {
   const session = await getSession();
-
   if (!session?.user) {
-    throw new Error("Unauthorized: You must be logged in to delete attachments");
+    throw errors.unauthorized();
+  }
+
+  const existingAttachment = await db.query.attachment.findFirst({
+    where: and(eq(attachment.id, id), eq(attachment.userId, session.user.id)),
+  });
+
+  if (!existingAttachment) {
+    throw errors.notFound("Attachment");
   }
 
   try {
-    // Verify ownership
-    const existingAttachment = await db.query.attachment.findFirst({
-      where: and(eq(attachment.id, id), eq(attachment.userId, session.user.id)),
-    });
-
-    if (!existingAttachment) {
-      throw new Error("Attachment not found or you don't have permission to delete it");
-    }
-
-    // Delete from R2
-    try {
-      await r2.deleteObject({
-        Key: existingAttachment.storageKey,
-      });
-    } catch (r2Error) {
-      console.error("Error deleting from R2:", r2Error);
-      // Continue with database deletion even if R2 deletion fails
-    }
-
-    // Delete from database
-    await db.delete(attachment).where(eq(attachment.id, id));
-
-    // Update user storage used
-    await db
-      .update(user)
-      .set({
-        storageUsedBytes: sql`GREATEST(0, ${user.storageUsedBytes} - ${existingAttachment.fileSize})`,
-      })
-      .where(eq(user.id, session.user.id));
-
-    // Revalidate relevant pages
-    revalidatePath(`/dashboard/${existingAttachment.entityType}s`);
-    revalidatePath(`/dashboard/${existingAttachment.entityType}s/${existingAttachment.entityId}`);
-
-    return { success: true };
-  } catch (error) {
-    console.error("Error deleting attachment:", error);
-    if (error instanceof Error) {
-      throw error;
-    }
-    throw new Error("Failed to delete attachment");
+    await r2.deleteObject({ Key: existingAttachment.storageKey });
+  } catch (r2Error) {
+    console.error("Error deleting from R2:", r2Error);
   }
+
+  await db.delete(attachment).where(eq(attachment.id, id));
+
+  await db
+    .update(user)
+    .set({
+      storageUsedBytes: sql`GREATEST(0, ${user.storageUsedBytes} - ${existingAttachment.fileSize})`,
+    })
+    .where(eq(user.id, session.user.id));
+
+  revalidatePath(`/dashboard/${existingAttachment.entityType}s`);
+  revalidatePath(`/dashboard/${existingAttachment.entityType}s/${existingAttachment.entityId}`);
 }
 
-/**
- * Bulk delete attachments
- *
- * @param input - Array of attachment IDs to delete
- * @returns Success status with count
- * @throws Error if user is not authenticated or validation fails
- */
 export async function bulkDeleteAttachments(input: unknown) {
   const session = await getSession();
-
   if (!session?.user) {
-    throw new Error("Unauthorized: You must be logged in to delete attachments");
+    throw errors.unauthorized();
   }
 
-  // Validate input
-  const data = bulkDeleteAttachmentsSchema.parse(input);
+  const data = parseInput(bulkDeleteAttachmentsSchema, input);
 
-  try {
-    // Verify ownership of all attachments
-    const attachments = await db.query.attachment.findMany({
-      where: and(
-        inArray(attachment.id, data.attachmentIds),
-        eq(attachment.userId, session.user.id)
-      ),
-    });
+  const attachments = await db.query.attachment.findMany({
+    where: and(inArray(attachment.id, data.attachmentIds), eq(attachment.userId, session.user.id)),
+  });
 
-    if (attachments.length !== data.attachmentIds.length) {
-      throw new Error("Some attachments not found or you don't have permission");
-    }
-
-    // Delete from R2
-    const deletePromises = attachments.map((att) =>
-      r2
-        .deleteObject({
-          Key: att.storageKey,
-        })
-        .catch((error) => {
-          console.error(`Error deleting ${att.storageKey} from R2:`, error);
-          // Continue even if R2 deletion fails
-        })
-    );
-    await Promise.all(deletePromises);
-
-    // Delete from database
-    await db.delete(attachment).where(inArray(attachment.id, data.attachmentIds));
-
-    // Calculate total size deleted
-    const totalSize = attachments.reduce((sum, att) => sum + att.fileSize, 0);
-
-    // Update user storage used
-    await db
-      .update(user)
-      .set({
-        storageUsedBytes: sql`GREATEST(0, ${user.storageUsedBytes} - ${totalSize})`,
-      })
-      .where(eq(user.id, session.user.id));
-
-    // Revalidate relevant pages
-    const entityTypes = new Set(attachments.map((att) => att.entityType));
-    entityTypes.forEach((entityType) => {
-      revalidatePath(`/dashboard/${entityType}s`);
-    });
-
-    return { success: true, count: attachments.length };
-  } catch (error) {
-    console.error("Error bulk deleting attachments:", error);
-    if (error instanceof Error) {
-      throw error;
-    }
-    throw new Error("Failed to bulk delete attachments");
+  if (attachments.length !== data.attachmentIds.length) {
+    throw errors.notFound("Some attachments");
   }
+
+  const deletePromises = attachments.map((att) =>
+    r2.deleteObject({ Key: att.storageKey }).catch((error) => {
+      console.error(`Error deleting ${att.storageKey} from R2:`, error);
+    })
+  );
+  await Promise.all(deletePromises);
+
+  await db.delete(attachment).where(inArray(attachment.id, data.attachmentIds));
+
+  const totalSize = attachments.reduce((sum, att) => sum + att.fileSize, 0);
+
+  await db
+    .update(user)
+    .set({
+      storageUsedBytes: sql`GREATEST(0, ${user.storageUsedBytes} - ${totalSize})`,
+    })
+    .where(eq(user.id, session.user.id));
+
+  const entityTypes = new Set(attachments.map((att) => att.entityType));
+  entityTypes.forEach((entityType) => {
+    revalidatePath(`/dashboard/${entityType}s`);
+  });
+
+  return { count: attachments.length };
 }
 
 // ============================================================================
 // UPDATE OPERATIONS
 // ============================================================================
 
-/**
- * Update an attachment's metadata
- *
- * Only fileName and metadata can be updated.
- * File content is immutable - delete and re-upload to change file.
- *
- * @param id - Attachment UUID
- * @param input - Updated fields
- * @returns Updated attachment
- * @throws Error if user is not authenticated or not authorized
- */
 export async function updateAttachment(id: string, input: unknown) {
   const session = await getSession();
-
   if (!session?.user) {
-    throw new Error("Unauthorized: You must be logged in to update attachments");
+    throw errors.unauthorized();
   }
 
-  // Validate input
-  const data = updateAttachmentSchema.parse(input);
+  const data = parseInput(updateAttachmentSchema, input);
 
-  try {
-    // Verify ownership
-    const existingAttachment = await db.query.attachment.findFirst({
-      where: and(eq(attachment.id, id), eq(attachment.userId, session.user.id)),
-    });
+  const existingAttachment = await db.query.attachment.findFirst({
+    where: and(eq(attachment.id, id), eq(attachment.userId, session.user.id)),
+  });
 
-    if (!existingAttachment) {
-      throw new Error("Attachment not found or you don't have permission to update it");
-    }
-
-    // Update attachment
-    const updates: UpdateAttachmentInput = { ...data };
-    const [updatedAttachment] = await db
-      .update(attachment)
-      .set(updates)
-      .where(eq(attachment.id, id))
-      .returning();
-
-    // Revalidate relevant pages
-    revalidatePath(`/dashboard/${existingAttachment.entityType}s`);
-    revalidatePath(`/dashboard/${existingAttachment.entityType}s/${existingAttachment.entityId}`);
-
-    return { success: true, attachment: updatedAttachment };
-  } catch (error) {
-    console.error("Error updating attachment:", error);
-    if (error instanceof Error) {
-      throw error;
-    }
-    throw new Error("Failed to update attachment");
+  if (!existingAttachment) {
+    throw errors.notFound("Attachment");
   }
+
+  const updates: UpdateAttachmentInput = { ...data };
+  const [updatedAttachment] = await db
+    .update(attachment)
+    .set(updates)
+    .where(eq(attachment.id, id))
+    .returning();
+
+  revalidatePath(`/dashboard/${existingAttachment.entityType}s`);
+  revalidatePath(`/dashboard/${existingAttachment.entityType}s/${existingAttachment.entityId}`);
+
+  return updatedAttachment;
 }
 
 // ============================================================================
 // DOWNLOAD OPERATIONS
 // ============================================================================
 
-/**
- * Generate a signed URL for downloading an attachment
- *
- * URL expires after 1 hour for security.
- *
- * @param id - Attachment UUID
- * @returns Signed download URL
- * @throws Error if user is not authenticated or not authorized
- */
 export async function getAttachmentDownloadUrl(id: string) {
   const session = await getSession();
-
   if (!session?.user) {
-    throw new Error("Unauthorized: You must be logged in to download attachments");
+    throw errors.unauthorized();
   }
 
-  try {
-    // Verify ownership
-    const existingAttachment = await db.query.attachment.findFirst({
-      where: and(eq(attachment.id, id), eq(attachment.userId, session.user.id)),
-    });
+  const existingAttachment = await db.query.attachment.findFirst({
+    where: and(eq(attachment.id, id), eq(attachment.userId, session.user.id)),
+  });
 
-    if (!existingAttachment) {
-      throw new Error("Attachment not found or you don't have permission to access it");
-    }
-
-    // Generate signed URL (valid for 1 hour)
-    const downloadUrl = await r2.getDownloadUrl({
-      Key: existingAttachment.storageKey,
-      ResponseContentDisposition: `attachment; filename="${existingAttachment.fileName}"`,
-    });
-
-    return { success: true, downloadUrl };
-  } catch (error) {
-    console.error("Error generating download URL:", error);
-    if (error instanceof Error) {
-      throw error;
-    }
-    throw new Error("Failed to generate download URL");
+  if (!existingAttachment) {
+    throw errors.notFound("Attachment");
   }
+
+  const downloadUrl = await r2.getDownloadUrl({
+    Key: existingAttachment.storageKey,
+    ResponseContentDisposition: `attachment; filename="${existingAttachment.fileName}"`,
+  });
+
+  return { downloadUrl };
 }
 
-/**
- * Get attachment image data for copying to clipboard
- *
- * Fetches the image server-side to bypass CORS restrictions.
- *
- * @param id - Attachment UUID
- * @returns Image as base64 data URL
- * @throws Error if user is not authenticated or not authorized
- */
 export async function getAttachmentImageData(id: string) {
   const session = await getSession();
-
   if (!session?.user) {
-    throw new Error("Unauthorized: You must be logged in to access attachments");
+    throw errors.unauthorized();
   }
 
-  try {
-    // Verify ownership
-    const existingAttachment = await db.query.attachment.findFirst({
-      where: and(eq(attachment.id, id), eq(attachment.userId, session.user.id)),
-    });
+  const existingAttachment = await db.query.attachment.findFirst({
+    where: and(eq(attachment.id, id), eq(attachment.userId, session.user.id)),
+  });
 
-    if (!existingAttachment) {
-      throw new Error("Attachment not found or you don't have permission to access it");
-    }
-
-    // Generate signed URL
-    const downloadUrl = await r2.getDownloadUrl({
-      Key: existingAttachment.storageKey,
-    });
-
-    // Fetch image server-side (bypasses CORS)
-    const response = await fetch(downloadUrl);
-    if (!response.ok) {
-      throw new Error("Failed to fetch image");
-    }
-
-    const arrayBuffer = await response.arrayBuffer();
-    const base64 = Buffer.from(arrayBuffer).toString("base64");
-    const dataUrl = `data:${existingAttachment.mimeType};base64,${base64}`;
-
-    return { success: true, dataUrl };
-  } catch (error) {
-    console.error("Error getting image data:", error);
-    if (error instanceof Error) {
-      throw error;
-    }
-    throw new Error("Failed to get image data");
+  if (!existingAttachment) {
+    throw errors.notFound("Attachment");
   }
+
+  const downloadUrl = await r2.getDownloadUrl({
+    Key: existingAttachment.storageKey,
+  });
+
+  const response = await fetch(downloadUrl);
+  if (!response.ok) {
+    throw errors.internal("Failed to fetch image");
+  }
+
+  const arrayBuffer = await response.arrayBuffer();
+  const base64 = Buffer.from(arrayBuffer).toString("base64");
+  const dataUrl = `data:${existingAttachment.mimeType};base64,${base64}`;
+
+  return { dataUrl };
 }

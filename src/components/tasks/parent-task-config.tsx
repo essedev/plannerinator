@@ -26,10 +26,8 @@ export const parentTaskConfig: ParentEntityCardConfig<TaskOption> = {
   parentIdField: "parentTaskId",
 
   fetchEntities: async (excludeId?: string) => {
-    return await getTasksForParentSelection(excludeId);
+    return (await getTasksForParentSelection(excludeId)) as TaskOption[];
   },
-
-  extractEntities: (result) => result.tasks as TaskOption[],
 
   updateEntity: async (entityId: string, parentId: string | null) => {
     await updateTask(entityId, { parentTaskId: parentId });

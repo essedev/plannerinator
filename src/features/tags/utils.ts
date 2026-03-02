@@ -53,8 +53,8 @@ export async function createAndAssignTags(
         color: tag.color,
       });
 
-      if (newTagResult.tag) {
-        realTagIds.push(newTagResult.tag.id);
+      if (newTagResult) {
+        realTagIds.push(newTagResult.id);
       }
     } else {
       // This is an existing tag

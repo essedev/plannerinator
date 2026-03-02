@@ -24,10 +24,8 @@ export const parentNoteConfig: ParentEntityCardConfig<NoteOption> = {
   parentIdField: "parentNoteId",
 
   fetchEntities: async (excludeId?: string) => {
-    return await getNotesForParentSelection(excludeId);
+    return (await getNotesForParentSelection(excludeId)) as NoteOption[];
   },
-
-  extractEntities: (result) => result.notes as NoteOption[],
 
   updateEntity: async (entityId: string, parentId: string | null) => {
     await updateNote(entityId, { parentNoteId: parentId });

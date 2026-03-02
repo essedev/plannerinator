@@ -4,6 +4,7 @@ import { getTodayItems } from "@/features/dashboard/queries";
 import { formatTime } from "@/lib/dates";
 import { TASK_PRIORITY_LABELS, TASK_STATUS_LABELS } from "@/lib/labels";
 import { isPast } from "date-fns";
+import { EVENT_CALENDAR_TYPE_SOLID_COLORS } from "@/lib/colors";
 import { AlertCircle, Calendar, CheckSquare, Clock } from "lucide-react";
 import Link from "next/link";
 
@@ -104,17 +105,10 @@ export async function TodayView() {
           ) : (
             <div className="space-y-3">
               {events.map((event) => {
-                const calendarTypeColors: Record<"personal" | "work" | "family" | "other", string> =
-                  {
-                    personal: "bg-blue-500",
-                    work: "bg-purple-500",
-                    family: "bg-green-500",
-                    other: "bg-gray-500",
-                  };
-
                 const colorClass =
-                  calendarTypeColors[event.calendarType as keyof typeof calendarTypeColors] ||
-                  calendarTypeColors.other;
+                  EVENT_CALENDAR_TYPE_SOLID_COLORS[
+                    event.calendarType as keyof typeof EVENT_CALENDAR_TYPE_SOLID_COLORS
+                  ] || EVENT_CALENDAR_TYPE_SOLID_COLORS.other;
 
                 return (
                   <Link

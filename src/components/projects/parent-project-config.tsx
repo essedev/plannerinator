@@ -26,10 +26,8 @@ export const parentProjectConfig: ParentEntityCardConfig<ProjectOption> = {
   parentIdField: "parentProjectId",
 
   fetchEntities: async (excludeId?: string) => {
-    return await getProjectsForParentSelection(excludeId);
+    return (await getProjectsForParentSelection(excludeId)) as ProjectOption[];
   },
-
-  extractEntities: (result) => result.projects as ProjectOption[],
 
   updateEntity: async (entityId: string, parentId: string | null) => {
     await updateProject(entityId, { parentProjectId: parentId });

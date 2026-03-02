@@ -186,17 +186,13 @@ async function handleCreateTasks(
         status: "todo",
       });
 
-      if (result.success) {
-        results.push({
-          id: result.task.id,
-          title: result.task.title,
-          dueDate: result.task.dueDate,
-          priority: result.task.priority,
-          project: taskData.projectName || null,
-        });
-      } else {
-        errors.push(`Failed to create task "${taskData.title}"`);
-      }
+      results.push({
+        id: result.id,
+        title: result.title,
+        dueDate: result.dueDate,
+        priority: result.priority,
+        project: taskData.projectName || null,
+      });
     } catch (error) {
       errors.push(`Error creating task "${taskData.title}": ${error}`);
     }
@@ -255,16 +251,12 @@ async function handleCreateEvents(
         calendarType: "event",
       });
 
-      if (result.success) {
-        results.push({
-          id: result.event.id,
-          title: result.event.title,
-          startTime: result.event.startTime,
-          endTime: result.event.endTime,
-        });
-      } else {
-        errors.push(`Failed to create event "${eventData.title}"`);
-      }
+      results.push({
+        id: result.id,
+        title: result.title,
+        startTime: result.startTime,
+        endTime: result.endTime,
+      });
     } catch (error) {
       errors.push(`Error creating event "${eventData.title}": ${error}`);
     }
@@ -316,13 +308,13 @@ async function handleCreateNote(
     });
 
     return {
-      success: result.success,
+      success: true,
       data: {
         notes: [
           {
-            id: result.note.id,
-            title: result.note.title,
-            type: result.note.type,
+            id: result.id,
+            title: result.title,
+            type: result.type,
           },
         ],
       },
@@ -358,14 +350,14 @@ async function handleCreateProject(
     });
 
     return {
-      success: result.success,
+      success: true,
       data: {
         projects: [
           {
-            id: result.project.id,
-            name: result.project.name,
-            status: result.project.status,
-            color: result.project.color,
+            id: result.id,
+            name: result.name,
+            status: result.status,
+            color: result.color,
           },
         ],
       },
@@ -762,9 +754,9 @@ async function handleUpdateTask(
     if (input.updates.status === "done") {
       const result = await markTaskComplete(taskId);
       return {
-        success: result.success,
+        success: true,
         data: {
-          message: `Task "${result.task.title}" marked as complete`,
+          message: `Task "${result.title}" marked as complete`,
         },
       };
     }
@@ -786,9 +778,9 @@ async function handleUpdateTask(
     const result = await updateTask(taskId, updates);
 
     return {
-      success: result.success,
+      success: true,
       data: {
-        message: `Task "${result.task.title}" updated successfully`,
+        message: `Task "${result.title}" updated successfully`,
       },
     };
   } catch (error) {
@@ -859,9 +851,9 @@ async function handleUpdateEvent(
     const result = await updateEvent(eventId, updates);
 
     return {
-      success: result.success,
+      success: true,
       data: {
-        message: `Event "${result.event.title}" updated successfully`,
+        message: `Event "${result.title}" updated successfully`,
       },
     };
   } catch (error) {
@@ -926,9 +918,9 @@ async function handleUpdateNote(
     const result = await updateNote(noteId, updates);
 
     return {
-      success: result.success,
+      success: true,
       data: {
-        message: `Note "${result.note.title}" updated successfully`,
+        message: `Note "${result.title}" updated successfully`,
       },
     };
   } catch (error) {
@@ -999,9 +991,9 @@ async function handleUpdateProject(
     const result = await updateProject(projectId, updates);
 
     return {
-      success: result.success,
+      success: true,
       data: {
-        message: `Project "${result.project.name}" updated successfully`,
+        message: `Project "${result.name}" updated successfully`,
       },
     };
   } catch (error) {
@@ -1058,19 +1050,18 @@ async function handleDeleteEntity(
     }
 
     // Execute delete based on entity type
-    let result;
     switch (entityType) {
       case "task":
-        result = await deleteTask(entityId);
+        await deleteTask(entityId);
         break;
       case "event":
-        result = await deleteEvent(entityId);
+        await deleteEvent(entityId);
         break;
       case "note":
-        result = await deleteNote(entityId);
+        await deleteNote(entityId);
         break;
       case "project":
-        result = await deleteProject(entityId);
+        await deleteProject(entityId);
         break;
       default:
         return {
@@ -1080,7 +1071,7 @@ async function handleDeleteEntity(
     }
 
     return {
-      success: result.success,
+      success: true,
       data: {
         message: `${entityType.charAt(0).toUpperCase() + entityType.slice(1)} deleted successfully`,
       },

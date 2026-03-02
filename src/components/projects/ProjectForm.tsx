@@ -66,14 +66,13 @@ export function ProjectForm({
 
     try {
       if (mode === "create") {
-        const result = await createProject({
+        const createdProject = await createProject({
           ...data,
           parentProjectId: parentProjectId || null,
         });
 
-        // Handle tag creation and assignment if tags were selected
-        if (result.project && selectedTags) {
-          await createAndAssignTags(selectedTags, "project", result.project.id);
+        if (createdProject && selectedTags) {
+          await createAndAssignTags(selectedTags, "project", createdProject.id);
         }
 
         toast.success("Project created successfully!");

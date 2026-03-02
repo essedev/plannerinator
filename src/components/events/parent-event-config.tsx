@@ -25,10 +25,8 @@ export const parentEventConfig: ParentEntityCardConfig<EventOption> = {
   parentIdField: "parentEventId",
 
   fetchEntities: async (excludeId?: string) => {
-    return await getEventsForParentSelection(excludeId);
+    return (await getEventsForParentSelection(excludeId)) as EventOption[];
   },
-
-  extractEntities: (result) => result.events as EventOption[],
 
   updateEntity: async (entityId: string, parentId: string | null) => {
     await updateEvent(entityId, { parentEventId: parentId });

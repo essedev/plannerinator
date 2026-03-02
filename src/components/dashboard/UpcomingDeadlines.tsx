@@ -4,6 +4,7 @@ import { getUpcomingDeadlines } from "@/features/dashboard/queries";
 import { formatShortDate } from "@/lib/dates";
 import { TASK_PRIORITY_LABELS, TASK_STATUS_LABELS } from "@/lib/labels";
 import { differenceInDays, isToday, isTomorrow } from "date-fns";
+import { TASK_PRIORITY_TEXT_COLORS } from "@/lib/colors";
 import { CalendarClock } from "lucide-react";
 import Link from "next/link";
 
@@ -46,16 +47,10 @@ export async function UpcomingDeadlines() {
           <div className="space-y-2">
             {tasks.map((task) => {
               const dueDate = task.dueDate ? new Date(task.dueDate) : null;
-              const priorityColors: Record<"low" | "medium" | "high" | "urgent", string> = {
-                low: "text-blue-600 dark:text-blue-400",
-                medium: "text-yellow-600 dark:text-yellow-400",
-                high: "text-orange-600 dark:text-orange-400",
-                urgent: "text-red-600 dark:text-red-400",
-              };
-
               const priorityColorClass =
-                priorityColors[task.priority as keyof typeof priorityColors] ||
-                priorityColors.medium;
+                TASK_PRIORITY_TEXT_COLORS[
+                  task.priority as keyof typeof TASK_PRIORITY_TEXT_COLORS
+                ] || TASK_PRIORITY_TEXT_COLORS.medium;
 
               return (
                 <Link

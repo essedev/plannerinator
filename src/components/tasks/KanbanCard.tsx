@@ -6,6 +6,7 @@ import { TASK_PRIORITY_LABELS } from "@/lib/labels";
 import { formatShortDate } from "@/lib/dates";
 import { Calendar, Flag, FolderOpen, AlertCircle } from "lucide-react";
 import { isPast } from "date-fns";
+import { TASK_PRIORITY_BORDER_COLORS } from "@/lib/colors";
 import Link from "next/link";
 import { useSortable } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
@@ -45,14 +46,9 @@ export function KanbanCard({ task }: KanbanCardProps) {
     opacity: isDragging ? 0.5 : 1,
   };
 
-  const priorityColors: Record<"low" | "medium" | "high" | "urgent", string> = {
-    low: "border-l-blue-500",
-    medium: "border-l-yellow-500",
-    high: "border-l-orange-500",
-    urgent: "border-l-red-500",
-  };
-
-  const priorityColor = task.priority ? priorityColors[task.priority] : "border-l-gray-500";
+  const priorityColor = task.priority
+    ? TASK_PRIORITY_BORDER_COLORS[task.priority]
+    : "border-l-gray-500";
   const isOverdue = task.dueDate && isPast(new Date(task.dueDate));
 
   return (

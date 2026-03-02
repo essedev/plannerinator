@@ -6,6 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Plus, Tag as TagIcon } from "lucide-react";
+import { DEFAULT_TAG_COLOR } from "@/lib/colors";
 import { searchTags } from "@/features/tags/queries";
 
 /**
@@ -65,7 +66,7 @@ export function TagSelector({ selectedTags, onTagsChange }: TagSelectorProps) {
     const newTag = {
       id: `temp-${Date.now()}`, // Temporary ID
       name: searchQuery.trim(),
-      color: "#6b7280", // Default gray
+      color: DEFAULT_TAG_COLOR,
     };
 
     onTagsChange([...selectedTags, newTag]);

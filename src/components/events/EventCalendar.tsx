@@ -6,6 +6,7 @@ import { it } from "date-fns/locale";
 import { useState, useCallback, useMemo } from "react";
 import "react-big-calendar/lib/css/react-big-calendar.css";
 import "@/styles/calendar.css";
+import { EVENT_CALENDAR_TYPE_HEX_COLORS } from "@/lib/colors";
 import { useRouter } from "next/navigation";
 
 // Configure date-fns localizer with Italian locale
@@ -57,14 +58,6 @@ interface SlotInfo {
   end: Date | string;
   action: "select" | "click" | "doubleClick";
 }
-
-// Calendar type color mapping
-const calendarTypeBgColors = {
-  personal: "#3b82f6",
-  work: "#a855f7",
-  family: "#22c55e",
-  other: "#6b7280",
-} as const;
 
 export function EventCalendar({ events, onSelectSlot }: EventCalendarProps) {
   const router = useRouter();
@@ -119,7 +112,7 @@ export function EventCalendar({ events, onSelectSlot }: EventCalendarProps) {
   // Custom event styling based on calendar type
   const eventStyleGetter = useCallback((event: CalendarEvent) => {
     const calendarType = event.resource?.calendarType || "other";
-    const backgroundColor = calendarTypeBgColors[calendarType];
+    const backgroundColor = EVENT_CALENDAR_TYPE_HEX_COLORS[calendarType];
 
     return {
       style: {

@@ -14,6 +14,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { createTag } from "@/features/tags/actions";
+import { DEFAULT_TAG_COLOR } from "@/lib/colors";
 
 /**
  * Create Tag Dialog Component
@@ -29,7 +30,7 @@ export function CreateTagDialog({ children }: CreateTagDialogProps) {
   const [isPending, startTransition] = useTransition();
   const [isOpen, setIsOpen] = useState(false);
   const [name, setName] = useState("");
-  const [color, setColor] = useState("#6b7280");
+  const [color, setColor] = useState(DEFAULT_TAG_COLOR);
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -49,7 +50,7 @@ export function CreateTagDialog({ children }: CreateTagDialogProps) {
         toast.success(`Tag "${name.trim()}" created`);
         setIsOpen(false);
         setName("");
-        setColor("#6b7280");
+        setColor(DEFAULT_TAG_COLOR);
       } catch (error) {
         toast.error(error instanceof Error ? error.message : "Failed to create tag");
       }
@@ -94,7 +95,7 @@ export function CreateTagDialog({ children }: CreateTagDialogProps) {
                 value={color}
                 onChange={(e) => setColor(e.target.value)}
                 disabled={isPending}
-                placeholder="#6b7280"
+                placeholder={DEFAULT_TAG_COLOR}
                 className="flex-1"
               />
             </div>

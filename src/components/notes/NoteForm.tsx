@@ -72,26 +72,19 @@ export function NoteForm({ mode, initialData, parentNoteId, selectedTags }: Note
 
     try {
       if (mode === "create") {
-        const result = await createNote({
+        const createdNote = await createNote({
           ...data,
           parentNoteId: parentNoteId || null,
         });
-        if (!result.success) {
-          throw new Error("Failed to create note");
-        }
 
-        // Handle tag creation and assignment if tags were selected
-        if (result.note && selectedTags) {
-          await createAndAssignTags(selectedTags, "note", result.note.id);
+        if (createdNote && selectedTags) {
+          await createAndAssignTags(selectedTags, "note", createdNote.id);
         }
 
         toast.success("Note created successfully!");
         router.push("/dashboard/notes");
       } else if (initialData?.id) {
-        const result = await updateNote(initialData.id, data);
-        if (!result.success) {
-          throw new Error("Failed to update note");
-        }
+        await updateNote(initialData.id, data);
         toast.success("Note updated successfully!");
         router.push(`/dashboard/notes/${initialData.id}`);
       }

@@ -7,6 +7,33 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.20.0] - 2026-03-02
+
+### Added
+
+- Structured error system with typed `AppError` class and factory functions (`errors.unauthorized()`, `errors.notFound()`, etc.) mapping to HTTP status codes
+- Client-side error handler (`handleActionError`) displaying structured toast notifications with human-readable titles
+- Centralized color constants (`src/lib/colors.ts`) for all entity badges, borders, and status indicators
+- Shared `EntityCardMenu` dropdown component replacing duplicated menu code across all entity cards
+- `useEntityActions` hook centralizing common card action handlers (delete, duplicate, archive, restore)
+- Database transaction support via `withTransaction()` for atomic multi-table operations
+
+### Changed
+
+- Hard delete operations now run inside a database transaction, preventing orphaned data on partial failures
+- Server actions return entities directly instead of `{ success: true, entity }` wrapper objects
+- All input validation uses `parseInput()` wrapper converting Zod errors into typed `AppError`
+- Entity cards (Task, Note, Project, Event) refactored to use shared `EntityCardMenu` and `useEntityActions`
+- AI tool handlers updated to match simplified action return shapes
+- Tag components and utilities updated for direct-return action pattern
+- Updated Next.js to 16.1.6, React to 19.2.4, better-auth to 1.5.0, Tailwind CSS to 4.2.1, and 20+ other dependencies
+
+### Removed
+
+- `handleEntityError` function replaced by structured error propagation to UI layer
+- `checkBulkOwnership` stub function (was never implemented)
+- Inline color constant objects from all entity card and dashboard components (replaced by centralized module)
+
 ## [0.19.0] - 2026-01-16
 
 ### Added

@@ -6,7 +6,7 @@
  */
 
 import { getSession } from "@/lib/auth";
-import { db } from "@/db";
+import { db, withTransaction } from "@/db";
 import {
   task,
   event,
@@ -22,6 +22,7 @@ import { eq, and, or, sql } from "drizzle-orm";
 import { revalidatePath } from "next/cache";
 import type { AppSession } from "@/types/auth";
 import { r2 } from "@/lib/r2-client";
+import { errors } from "@/lib/errors";
 
 // ============================================================================
 // TYPE DEFINITIONS
@@ -42,15 +43,14 @@ interface EntityWithProject {
 /**
  * Validate user session
  *
- * @param operation - Operation being performed (for error message)
  * @returns User session
- * @throws Error if user is not authenticated
+ * @throws AppError UNAUTHORIZED if user is not authenticated
  */
-export async function validateSession(operation: string): Promise<AppSession> {
+export async function validateSession(): Promise<AppSession> {
   const session = await getSession();
 
   if (!session?.user) {
-    throw new Error(`Unauthorized: You must be logged in to ${operation}`);
+    throw errors.unauthorized();
   }
 
   return session;
@@ -67,7 +67,7 @@ export async function validateSession(operation: string): Promise<AppSession> {
  * @param entityId - Entity UUID
  * @param userId - User UUID
  * @returns Entity if found and owned by user
- * @throws Error if entity not found or user doesn't own it
+ * @throws AppError NOT_FOUND if entity not found or user doesn't own it
  */
 export async function checkOwnership<T extends EntityWithProject>(
   entityType: EntityType,
@@ -76,7 +76,6 @@ export async function checkOwnership<T extends EntityWithProject>(
 ): Promise<T> {
   let existingEntity;
 
-  // TypeScript needs explicit handling for each entity type
   switch (entityType) {
     case "task":
       existingEntity = await db.query.task.findFirst({
@@ -101,33 +100,10 @@ export async function checkOwnership<T extends EntityWithProject>(
   }
 
   if (!existingEntity) {
-    throw new Error(
-      `${capitalize(entityType)} not found or you don't have permission to access it`
-    );
+    throw errors.notFound(capitalize(entityType));
   }
 
   return existingEntity as unknown as T;
-}
-
-/**
- * Check if user owns multiple entities
- *
- * @param entityType - Type of entity
- * @param entityIds - Array of entity UUIDs
- * @param userId - User UUID
- * @returns Array of entities
- * @throws Error if any entity not found or not owned
- */
-export async function checkBulkOwnership<T extends EntityWithProject>(
-  entityType: EntityType,
-  entityIds: string[],
-  userId: string
-): Promise<T[]> {
-  // Note: This function is not currently used in the refactored actions
-  // but kept for potential future use
-  throw new Error(
-    `checkBulkOwnership not implemented for ${entityType} (${entityIds.length} items, user: ${userId.slice(0, 8)}...) - use entity-specific bulk checks`
-  );
 }
 
 // ============================================================================
@@ -136,11 +112,6 @@ export async function checkBulkOwnership<T extends EntityWithProject>(
 
 /**
  * Revalidate relevant paths after entity mutation
- *
- * @param entityType - Type of entity
- * @param entityId - Entity UUID (optional, for detail pages)
- * @param projectId - Related project UUID (optional)
- * @param includeTrash - Whether to revalidate trash page
  */
 export function revalidateEntityPaths(
   entityType: EntityType,
@@ -148,20 +119,16 @@ export function revalidateEntityPaths(
   projectId?: string | null,
   includeTrash = false
 ): void {
-  // Revalidate list page
   revalidatePath(`/dashboard/${entityType}s`);
 
-  // Revalidate detail page if ID provided
   if (entityId) {
     revalidatePath(`/dashboard/${entityType}s/${entityId}`);
   }
 
-  // Revalidate related project page
   if (projectId) {
     revalidatePath(`/dashboard/projects/${projectId}`);
   }
 
-  // Revalidate trash page if needed
   if (includeTrash) {
     revalidatePath("/dashboard/trash");
   }
@@ -169,10 +136,6 @@ export function revalidateEntityPaths(
 
 /**
  * Revalidate paths when project assignment changes
- *
- * @param entityType - Type of entity
- * @param oldProjectId - Previous project ID
- * @param newProjectId - New project ID
  */
 export function revalidateProjectChange(
   entityType: EntityType,
@@ -188,45 +151,11 @@ export function revalidateProjectChange(
 }
 
 // ============================================================================
-// ERROR HANDLING
-// ============================================================================
-
-/**
- * Handle and format errors from entity operations
- *
- * @param error - Error object
- * @param operation - Operation being performed
- * @param entityType - Type of entity
- * @throws Formatted error
- */
-export function handleEntityError(
-  error: unknown,
-  operation: string,
-  entityType: EntityType
-): never {
-  console.error(`Error ${operation} ${entityType}:`, error);
-
-  if (error instanceof Error) {
-    throw error;
-  }
-
-  throw new Error(`Failed to ${operation} ${entityType}`);
-}
-
-// ============================================================================
 // TAG OPERATIONS
 // ============================================================================
 
 /**
  * Copy tags from one entity to another
- *
- * Useful for duplication operations.
- *
- * @param sourceEntityType - Source entity type
- * @param sourceEntityId - Source entity UUID
- * @param targetEntityType - Target entity type
- * @param targetEntityId - Target entity UUID
- * @param userId - User UUID
  */
 export async function copyEntityTags(
   sourceEntityType: EntityType,
@@ -235,13 +164,11 @@ export async function copyEntityTags(
   targetEntityId: string,
   userId: string
 ): Promise<void> {
-  // Get source entity tags
   const sourceTags = await db
     .select()
     .from(entityTag)
     .where(and(eq(entityTag.entityType, sourceEntityType), eq(entityTag.entityId, sourceEntityId)));
 
-  // Copy tags to target entity
   if (sourceTags.length > 0) {
     await db.insert(entityTag).values(
       sourceTags.map((tag) => ({
@@ -260,23 +187,15 @@ export async function copyEntityTags(
 
 /**
  * Soft delete an entity (set deletedAt timestamp)
- *
- * @param entityType - Type of entity
- * @param entityId - Entity UUID
- * @param userId - User UUID
- * @param includeTrash - Whether to revalidate trash page
- * @returns Success response
  */
 export async function softDeleteEntity(
   entityType: EntityType,
   entityId: string,
   userId: string,
   includeTrash = true
-): Promise<{ success: true }> {
-  // Check ownership
+): Promise<void> {
   const entity = await checkOwnership(entityType, entityId, userId);
 
-  // Soft delete based on entity type
   switch (entityType) {
     case "task":
       await db.update(task).set({ deletedAt: new Date() }).where(eq(task.id, entityId));
@@ -292,139 +211,109 @@ export async function softDeleteEntity(
       break;
   }
 
-  // Revalidate paths
   revalidateEntityPaths(entityType, entityId, entity.projectId, includeTrash);
-
-  return { success: true };
 }
 
 /**
  * Hard delete an entity (permanent removal)
  *
- * Performs complete cleanup of all related data:
- * - Attachments (both R2 files and database records)
+ * Uses a database transaction to ensure atomic cleanup of all related data:
+ * - Attachments (R2 files deleted outside transaction, DB records inside)
  * - Comments
  * - Tags
  * - Links (bidirectional)
  * - Main entity
- *
- * Note: neon-http driver doesn't support transactions, so operations
- * are executed sequentially. In case of partial failure, some related
- * data might remain orphaned.
- *
- * @param entityType - Type of entity
- * @param entityId - Entity UUID
- * @param userId - User UUID
- * @returns Success response
  */
 export async function hardDeleteEntity(
   entityType: EntityType,
   entityId: string,
   userId: string
-): Promise<{ success: true }> {
-  // Check ownership
+): Promise<void> {
   await checkOwnership(entityType, entityId, userId);
 
-  // ========================================================================
-  // 1. DELETE ATTACHMENTS (R2 files + database records + storage quota)
-  // ========================================================================
+  // Delete R2 files outside the transaction (external service)
   const attachments = await db
     .select()
     .from(attachment)
     .where(and(eq(attachment.entityType, entityType), eq(attachment.entityId, entityId)));
 
-  // Delete files from R2
   if (attachments.length > 0) {
     const r2DeletePromises = attachments.map((att) =>
       r2.deleteObject({ Key: att.storageKey }).catch((error) => {
         console.error(`Error deleting ${att.storageKey} from R2:`, error);
-        // Continue even if R2 deletion fails (file might already be deleted)
       })
     );
     await Promise.all(r2DeletePromises);
-
-    // Delete attachment records from database
-    await db
-      .delete(attachment)
-      .where(and(eq(attachment.entityType, entityType), eq(attachment.entityId, entityId)));
-
-    // Update user storage quota
-    const totalSize = attachments.reduce((sum, att) => sum + att.fileSize, 0);
-    await db
-      .update(user)
-      .set({
-        storageUsedBytes: sql`GREATEST(0, ${user.storageUsedBytes} - ${totalSize})`,
-      })
-      .where(eq(user.id, userId));
   }
 
-  // ========================================================================
-  // 2. DELETE COMMENTS
-  // ========================================================================
-  await db
-    .delete(comment)
-    .where(and(eq(comment.entityType, entityType), eq(comment.entityId, entityId)));
+  const totalSize = attachments.reduce((sum, att) => sum + att.fileSize, 0);
 
-  // ========================================================================
-  // 3. DELETE ENTITY TAGS
-  // ========================================================================
-  await db
-    .delete(entityTag)
-    .where(and(eq(entityTag.entityType, entityType), eq(entityTag.entityId, entityId)));
+  // Database operations in a transaction
+  await withTransaction(async (tx) => {
+    // 1. Delete attachment records
+    if (attachments.length > 0) {
+      await tx
+        .delete(attachment)
+        .where(and(eq(attachment.entityType, entityType), eq(attachment.entityId, entityId)));
 
-  // ========================================================================
-  // 4. DELETE LINKS (bidirectional - both from and to)
-  // ========================================================================
-  await db
-    .delete(link)
-    .where(
-      or(
-        and(eq(link.fromType, entityType), eq(link.fromId, entityId)),
-        and(eq(link.toType, entityType), eq(link.toId, entityId))
-      )
-    );
+      await tx
+        .update(user)
+        .set({
+          storageUsedBytes: sql`GREATEST(0, ${user.storageUsedBytes} - ${totalSize})`,
+        })
+        .where(eq(user.id, userId));
+    }
 
-  // ========================================================================
-  // 5. DELETE MAIN ENTITY
-  // ========================================================================
-  switch (entityType) {
-    case "task":
-      await db.delete(task).where(eq(task.id, entityId));
-      break;
-    case "event":
-      await db.delete(event).where(eq(event.id, entityId));
-      break;
-    case "note":
-      await db.delete(note).where(eq(note.id, entityId));
-      break;
-    case "project":
-      await db.delete(project).where(eq(project.id, entityId));
-      break;
-  }
+    // 2. Delete comments
+    await tx
+      .delete(comment)
+      .where(and(eq(comment.entityType, entityType), eq(comment.entityId, entityId)));
 
-  // Revalidate paths
+    // 3. Delete entity tags
+    await tx
+      .delete(entityTag)
+      .where(and(eq(entityTag.entityType, entityType), eq(entityTag.entityId, entityId)));
+
+    // 4. Delete links (bidirectional)
+    await tx
+      .delete(link)
+      .where(
+        or(
+          and(eq(link.fromType, entityType), eq(link.fromId, entityId)),
+          and(eq(link.toType, entityType), eq(link.toId, entityId))
+        )
+      );
+
+    // 5. Delete main entity
+    switch (entityType) {
+      case "task":
+        await tx.delete(task).where(eq(task.id, entityId));
+        break;
+      case "event":
+        await tx.delete(event).where(eq(event.id, entityId));
+        break;
+      case "note":
+        await tx.delete(note).where(eq(note.id, entityId));
+        break;
+      case "project":
+        await tx.delete(project).where(eq(project.id, entityId));
+        break;
+    }
+  });
+
   revalidateEntityPaths(entityType, undefined, undefined, true);
-
-  return { success: true };
 }
 
 /**
  * Restore entity from trash (clear deletedAt)
- *
- * @param entityType - Type of entity
- * @param entityId - Entity UUID
- * @param userId - User UUID
- * @returns Success response
  */
 export async function restoreEntityFromTrash(
   entityType: EntityType,
   entityId: string,
   userId: string
-): Promise<{ success: true }> {
-  // Check ownership
+): Promise<void> {
   const entity = await checkOwnership(entityType, entityId, userId);
 
-  // Restore from trash based on entity type
   switch (entityType) {
     case "task":
       await db.update(task).set({ deletedAt: null }).where(eq(task.id, entityId));
@@ -440,10 +329,7 @@ export async function restoreEntityFromTrash(
       break;
   }
 
-  // Revalidate paths
   revalidateEntityPaths(entityType, entityId, entity.projectId, true);
-
-  return { success: true };
 }
 
 // ============================================================================
@@ -452,21 +338,14 @@ export async function restoreEntityFromTrash(
 
 /**
  * Archive an entity (set archivedAt timestamp)
- *
- * @param entityType - Type of entity
- * @param entityId - Entity UUID
- * @param userId - User UUID
- * @returns Success response
  */
 export async function archiveEntity(
   entityType: EntityType,
   entityId: string,
   userId: string
-): Promise<{ success: true }> {
-  // Check ownership
+): Promise<void> {
   const entity = await checkOwnership(entityType, entityId, userId);
 
-  // Archive based on entity type
   switch (entityType) {
     case "task":
       await db.update(task).set({ archivedAt: new Date() }).where(eq(task.id, entityId));
@@ -482,29 +361,19 @@ export async function archiveEntity(
       break;
   }
 
-  // Revalidate paths
   revalidateEntityPaths(entityType, entityId, entity.projectId);
-
-  return { success: true };
 }
 
 /**
  * Restore archived entity (clear archivedAt)
- *
- * @param entityType - Type of entity
- * @param entityId - Entity UUID
- * @param userId - User UUID
- * @returns Success response
  */
 export async function restoreArchivedEntity(
   entityType: EntityType,
   entityId: string,
   userId: string
-): Promise<{ success: true }> {
-  // Check ownership
+): Promise<void> {
   const entity = await checkOwnership(entityType, entityId, userId);
 
-  // Restore from archive based on entity type
   switch (entityType) {
     case "task":
       await db.update(task).set({ archivedAt: null }).where(eq(task.id, entityId));
@@ -520,19 +389,13 @@ export async function restoreArchivedEntity(
       break;
   }
 
-  // Revalidate paths
   revalidateEntityPaths(entityType, entityId, entity.projectId);
-
-  return { success: true };
 }
 
 // ============================================================================
 // UTILITY FUNCTIONS
 // ============================================================================
 
-/**
- * Capitalize first letter of string
- */
 function capitalize(str: string): string {
   return str.charAt(0).toUpperCase() + str.slice(1);
 }

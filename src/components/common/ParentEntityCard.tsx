@@ -45,17 +45,7 @@ export interface ParentEntityCardConfig<T extends BaseEntity> {
    * @param excludeId - ID to exclude from results (current entity in edit mode)
    * @returns Promise with entities array
    */
-  fetchEntities: (excludeId?: string) => Promise<{
-    success: boolean;
-    [key: string]: unknown; // The actual entities will be in a key like "tasks", "events", etc.
-  }>;
-
-  /**
-   * Extract entities array from fetch result
-   * @param result - Result from fetchEntities
-   * @returns Array of entities
-   */
-  extractEntities: (result: Record<string, unknown>) => T[];
+  fetchEntities: (excludeId?: string) => Promise<T[]>;
 
   /**
    * Update entity with new parent ID
@@ -155,13 +145,8 @@ export function ParentEntityCard<T extends BaseEntity>({
 
     async function loadEntities() {
       try {
-        const result = await config.fetchEntities(mode === "edit" ? entityId : undefined);
-        if (result.success) {
-          const entitiesArray = config.extractEntities(result);
-          setEntities(entitiesArray);
-        } else {
-          toast.error(`Failed to load ${config.entityTypeName.toLowerCase()}s`);
-        }
+        const entities = await config.fetchEntities(mode === "edit" ? entityId : undefined);
+        setEntities(entities);
       } catch (error) {
         console.error(`Failed to load ${config.entityTypeName.toLowerCase()}s:`, error);
         toast.error(`Failed to load ${config.entityTypeName.toLowerCase()}s`);

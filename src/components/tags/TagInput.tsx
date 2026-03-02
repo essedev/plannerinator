@@ -10,6 +10,7 @@ import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover
 import { Plus, Tag as TagIcon } from "lucide-react";
 import { searchTags } from "@/features/tags/queries";
 import { createTag, assignTagsToEntity, removeTagsFromEntity } from "@/features/tags/actions";
+import { DEFAULT_TAG_COLOR } from "@/lib/colors";
 import type { EntityType } from "@/features/tags/schema";
 
 /**
@@ -71,20 +72,20 @@ export function TagInput({ entityType, entityId, initialTags }: TagInputProps) {
       try {
         const result = await createTag({
           name: searchQuery.trim(),
-          color: "#6b7280", // Default gray
+          color: DEFAULT_TAG_COLOR,
         });
 
         // Immediately assign the new tag
         await assignTagsToEntity({
           entityType,
           entityId,
-          tagIds: [result.tag.id],
+          tagIds: [result.id],
         });
 
-        setAssignedTags([...assignedTags, result.tag]);
+        setAssignedTags([...assignedTags, result]);
         setSearchQuery("");
         setIsOpen(false);
-        toast.success(`Tag "${result.tag.name}" created and assigned`);
+        toast.success(`Tag "${result.name}" created and assigned`);
       } catch (error) {
         toast.error(error instanceof Error ? error.message : "Failed to create tag");
       }

@@ -13,6 +13,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { updateTag } from "@/features/tags/actions";
+import { DEFAULT_TAG_COLOR } from "@/lib/colors";
 import type { Tag } from "@/db/schema";
 
 /**
@@ -105,7 +106,7 @@ export function EditTagDialog({ tag, isOpen, onClose }: EditTagDialogProps) {
                 value={color}
                 onChange={(e) => setColor(e.target.value)}
                 disabled={isPending}
-                placeholder="#6b7280"
+                placeholder={DEFAULT_TAG_COLOR}
                 className="flex-1"
               />
             </div>
