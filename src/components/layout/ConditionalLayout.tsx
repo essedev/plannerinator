@@ -11,10 +11,13 @@ import { Navbar } from "./Navbar";
  */
 export function ConditionalLayout({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
-  const isDashboard = pathname.startsWith("/dashboard");
+  const isHub =
+    pathname.startsWith("/dashboard") ||
+    pathname.startsWith("/salute") ||
+    pathname.startsWith("/finanza");
 
-  if (isDashboard) {
-    // Dashboard: nessuna navbar (gestita dal dashboard layout)
+  if (isHub) {
+    // Hub routes: nessuna navbar (gestita dal hub layout con sidebar)
     return <>{children}</>;
   }
 

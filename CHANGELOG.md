@@ -7,6 +7,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.23.0] - 2026-03-02
+
+### Changed
+
+- Complete design system overhaul — new brand color palette with orange primary (`#fe5a1d`), hex values replacing oklch throughout light and dark themes
+- Brutalist UI style: removed all border-radius and box-shadows globally for sharp, flat aesthetic
+- Replaced Geist Mono with Space Mono as the monospace/UI font — applied to headings, buttons, labels, nav, badges, and table headers
+- Secondary button variant now uses blue (`#0070bb`) with white text for better visual hierarchy
+- `ConditionalLayout` now correctly detects all hub routes (`/dashboard`, `/salute`, `/finanza`) instead of only `/dashboard`
+- Updated prose code block styles from `hsl()` to direct CSS variable references
+
 ## [0.22.0] - 2026-03-02
 
 ### Added
@@ -543,7 +554,11 @@ Older changelog entries have been moved to archive files for better readability:
 
 ---
 
-[unreleased]: https://github.com/essedev/plannerinator/compare/v0.19.0...HEAD
+[unreleased]: https://github.com/essedev/plannerinator/compare/v0.23.0...HEAD
+[0.23.0]: https://github.com/essedev/plannerinator/compare/v0.22.0...v0.23.0
+[0.22.0]: https://github.com/essedev/plannerinator/compare/v0.21.0...v0.22.0
+[0.21.0]: https://github.com/essedev/plannerinator/compare/v0.20.0...v0.21.0
+[0.20.0]: https://github.com/essedev/plannerinator/compare/v0.19.0...v0.20.0
 [0.19.0]: https://github.com/essedev/plannerinator/compare/v0.18.0...v0.19.0
 [0.18.0]: https://github.com/essedev/plannerinator/compare/v0.17.1...v0.18.0
 [0.17.1]: https://github.com/essedev/plannerinator/compare/v0.17.0...v0.17.1

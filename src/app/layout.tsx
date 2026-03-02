@@ -1,4 +1,5 @@
-import { Geist, Geist_Mono } from "next/font/google";
+import { Geist } from "next/font/google";
+import { Space_Mono } from "next/font/google";
 import "./globals.css";
 import { Providers } from "./providers";
 import { ConditionalLayout } from "@/components/layout/ConditionalLayout";
@@ -9,9 +10,11 @@ const geistSans = Geist({
   subsets: ["latin"],
 });
 
-const geistMono = Geist_Mono({
-  variable: "--font-geist-mono",
+const spaceMono = Space_Mono({
+  variable: "--font-space-mono",
   subsets: ["latin"],
+  weight: ["400", "700"],
+  style: ["normal", "italic"],
 });
 
 export const metadata = createMetadata({});
@@ -24,7 +27,7 @@ export default function RootLayout({
   return (
     <html lang="en" suppressHydrationWarning>
       <body
-        className={`${geistSans.variable} ${geistMono.variable} antialiased min-h-screen flex flex-col`}
+        className={`${geistSans.variable} ${spaceMono.variable} font-sans antialiased min-h-screen flex flex-col`}
       >
         <Providers>
           <ConditionalLayout>{children}</ConditionalLayout>
