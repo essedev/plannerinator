@@ -30,6 +30,11 @@ export type UserStats = {
   eventsTomorrow: number;
   activeProjectsCount: number;
   recentProjectNames: string[];
+  // Health stats (optional)
+  activeProtocolsCount?: number;
+  activeSupplementsCount?: number;
+  latestWeight?: { value: string; date: string };
+  activeHealthGoalsCount?: number;
 };
 
 /**

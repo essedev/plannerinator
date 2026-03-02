@@ -7,6 +7,35 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.22.0] - 2026-03-02
+
+### Added
+
+- Hub system with section switcher — app now supports multiple sections (Planner, Salute, Finanza) via `HubSwitcher` dropdown in sidebar
+- `src/lib/hub.ts` with `HubId`, `HubConfig`, `hubConfigs`, and `getActiveHub(pathname)` for URL-based section detection
+- Route group `src/app/(hub)/` sharing layout, sidebar, breadcrumbs, and AI drawer across all hubs
+- **Salute (Health) section** — complete pilot implementation:
+  - 5 new database tables: `supplement_protocol`, `supplement`, `body_metric`, `health_profile`, `health_goal` with 2 new enums
+  - Feature module `src/features/health/` with 11 server actions, queries with pagination/aggregations, and helper functions (BMI, trends, progress)
+  - 8 pages: dashboard with stats, supplement protocols with toggle, body metrics with BMI, daily routine view, health goals with progress tracking
+  - 6 client components: `ProtocolToggle`, `AddSupplementForm`, `SupplementRow`, `DeleteProtocolButton`, `LogMetricForm`, `GoalActions`
+- 4 new AI tools: `manage_supplement_protocol`, `log_body_metric`, `manage_health_goal`, `query_health_status` (16 total)
+- Health context in AI system prompt — active protocols, supplements, weight, and goals displayed bilingually (IT/EN)
+- Finanza placeholder page at `/finanza`
+- Breadcrumb support for Salute and Finanza sections
+- `Switch` UI component (shadcn/ui) for protocol toggle
+- `HUB_MIGRATION.md` — reference document for the full migration plan from life-terminal
+
+### Changed
+
+- Sidebar refactored from hardcoded nav items to dynamic navigation driven by `hubConfigs` per active section
+- Dashboard pages moved from `src/app/dashboard/` to `src/app/(hub)/dashboard/` (URLs unchanged)
+- AI identity prompt updated to include health and supplement monitoring role
+
+### Dependencies
+
+- Added `radix-ui` v1.4.3
+
 ## [0.21.0] - 2026-03-02
 
 ### Added

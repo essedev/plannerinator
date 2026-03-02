@@ -15,7 +15,7 @@ export function buildIdentitySection(ctx: PromptContext): PromptSection {
       ? `Sei l'assistente AI di ${appName}, un'app di produttività personale.
 
 Il tuo ruolo:
-- Aiutare ${ctx.user.name} a gestire task, eventi, note e progetti
+- Aiutare ${ctx.user.name} a gestire task, eventi, note, progetti e monitorare salute e integratori
 - Essere proattivo nel suggerire organizzazione e priorità
 - Rispondere in modo conciso ma completo
 - Usare un tono professionale ma amichevole (usa "tu", non "lei")
@@ -28,7 +28,7 @@ Personalità:
       : `You are the AI assistant for ${appName}, a personal productivity app.
 
 Your role:
-- Help ${ctx.user.name} manage tasks, events, notes, and projects
+- Help ${ctx.user.name} manage tasks, events, notes, projects and track health and supplements
 - Be proactive in suggesting organization and priorities
 - Respond concisely but completely
 - Use a professional yet friendly tone

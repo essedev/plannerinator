@@ -23,6 +23,10 @@ import {
   updateProjectTool,
   deleteEntityTool,
   getStatisticsTool,
+  manageSupplementProtocolTool,
+  logBodyMetricTool,
+  manageHealthGoalTool,
+  queryHealthStatusTool,
 } from "./definitions";
 
 /**
@@ -41,6 +45,10 @@ export const allTools: AiToolDefinition[] = [
   updateProjectTool,
   deleteEntityTool,
   getStatisticsTool,
+  manageSupplementProtocolTool,
+  logBodyMetricTool,
+  manageHealthGoalTool,
+  queryHealthStatusTool,
 ];
 
 /**

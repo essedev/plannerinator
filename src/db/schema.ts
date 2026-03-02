@@ -1037,6 +1037,211 @@ export const aiLog = pgTable(
 );
 
 // ============================================
+// HEALTH / SALUTE ENUMS
+// ============================================
+
+export const supplementFrequencyEnum = pgEnum("supplement_frequency", [
+  "daily",
+  "twice_daily",
+  "weekly",
+  "as_needed",
+  "custom",
+]);
+
+export const healthGoalStatusEnum = pgEnum("health_goal_status", [
+  "active",
+  "paused",
+  "completed",
+  "abandoned",
+]);
+
+// ============================================
+// HEALTH / SALUTE TABLES
+// ============================================
+
+/**
+ * Supplement Protocols table
+ *
+ * A protocol groups related supplements (e.g., "Morning Stack", "Winter Protocol").
+ * Protocols can be toggled active/inactive and have optional date ranges.
+ */
+export const supplementProtocol = pgTable(
+  "supplement_protocol",
+  {
+    id: uuid("id").defaultRandom().primaryKey(),
+    userId: text("user_id")
+      .notNull()
+      .references(() => user.id, { onDelete: "cascade" }),
+
+    name: text("name").notNull(),
+    description: text("description"),
+    isActive: boolean("is_active").default(true).notNull(),
+    startDate: date("start_date"),
+    endDate: date("end_date"),
+    sortOrder: integer("sort_order").default(0).notNull(),
+
+    createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
+    updatedAt: timestamp("updated_at", { withTimezone: true })
+      .defaultNow()
+      .$onUpdate(() => new Date())
+      .notNull(),
+    deletedAt: timestamp("deleted_at", { withTimezone: true }),
+  },
+  (table) => [
+    index("idx_supplement_protocol_user").on(table.userId),
+    index("idx_supplement_protocol_active").on(table.isActive),
+    index("idx_supplement_protocol_deleted").on(table.deletedAt),
+  ]
+);
+
+/**
+ * Supplements table
+ *
+ * Individual supplements within a protocol.
+ * Tracks name, brand, dosage, frequency, and time of day.
+ */
+export const supplement = pgTable(
+  "supplement",
+  {
+    id: uuid("id").defaultRandom().primaryKey(),
+    userId: text("user_id")
+      .notNull()
+      .references(() => user.id, { onDelete: "cascade" }),
+    protocolId: uuid("protocol_id")
+      .notNull()
+      .references(() => supplementProtocol.id, { onDelete: "cascade" }),
+
+    name: text("name").notNull(),
+    brand: text("brand"),
+    dosage: text("dosage"),
+    frequency: supplementFrequencyEnum("frequency").default("daily").notNull(),
+    timeOfDay: text("time_of_day"), // "morning", "afternoon", "evening", or custom
+    notes: text("notes"),
+    isActive: boolean("is_active").default(true).notNull(),
+
+    createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
+    updatedAt: timestamp("updated_at", { withTimezone: true })
+      .defaultNow()
+      .$onUpdate(() => new Date())
+      .notNull(),
+    deletedAt: timestamp("deleted_at", { withTimezone: true }),
+  },
+  (table) => [
+    index("idx_supplement_user").on(table.userId),
+    index("idx_supplement_protocol").on(table.protocolId),
+    index("idx_supplement_active").on(table.isActive),
+    index("idx_supplement_deleted").on(table.deletedAt),
+  ]
+);
+
+/**
+ * Body Metrics table
+ *
+ * Tracks body measurements over time (weight, body fat, blood pressure, etc.).
+ * Uses text for metricType and value to support diverse measurement types.
+ */
+export const bodyMetric = pgTable(
+  "body_metric",
+  {
+    id: uuid("id").defaultRandom().primaryKey(),
+    userId: text("user_id")
+      .notNull()
+      .references(() => user.id, { onDelete: "cascade" }),
+
+    metricType: text("metric_type").notNull(), // "weight", "body_fat", "blood_pressure", etc.
+    value: text("value").notNull(), // stored as text for flexibility (e.g., "120/80")
+    unit: text("unit"), // "kg", "%", "mmHg", etc.
+    measuredAt: timestamp("measured_at", { withTimezone: true }).defaultNow().notNull(),
+    notes: text("notes"),
+
+    createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
+    updatedAt: timestamp("updated_at", { withTimezone: true })
+      .defaultNow()
+      .$onUpdate(() => new Date())
+      .notNull(),
+    deletedAt: timestamp("deleted_at", { withTimezone: true }),
+  },
+  (table) => [
+    index("idx_body_metric_user").on(table.userId),
+    index("idx_body_metric_type").on(table.metricType),
+    index("idx_body_metric_measured_at").on(table.measuredAt),
+    index("idx_body_metric_deleted").on(table.deletedAt),
+  ]
+);
+
+/**
+ * Health Profile table
+ *
+ * Singleton per user — stores static health information.
+ * Uses unique constraint on userId to enforce one-per-user.
+ */
+export const healthProfile = pgTable(
+  "health_profile",
+  {
+    id: uuid("id").defaultRandom().primaryKey(),
+    userId: text("user_id")
+      .notNull()
+      .unique()
+      .references(() => user.id, { onDelete: "cascade" }),
+
+    dateOfBirth: date("date_of_birth"),
+    bloodType: text("blood_type"),
+    height: text("height"), // in cm, stored as text
+    allergies: jsonb("allergies").default([]),
+    conditions: jsonb("conditions").default([]),
+    sleepTarget: text("sleep_target"), // e.g., "8h"
+    exerciseRoutine: text("exercise_routine"),
+    notes: text("notes"),
+
+    createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
+    updatedAt: timestamp("updated_at", { withTimezone: true })
+      .defaultNow()
+      .$onUpdate(() => new Date())
+      .notNull(),
+  },
+  (table) => [index("idx_health_profile_user").on(table.userId)]
+);
+
+/**
+ * Health Goals table
+ *
+ * Track health-related goals with progress and deadlines.
+ * Supports various categories (weight, fitness, nutrition, etc.).
+ */
+export const healthGoal = pgTable(
+  "health_goal",
+  {
+    id: uuid("id").defaultRandom().primaryKey(),
+    userId: text("user_id")
+      .notNull()
+      .references(() => user.id, { onDelete: "cascade" }),
+
+    title: text("title").notNull(),
+    description: text("description"),
+    category: text("category"), // "weight", "fitness", "nutrition", "sleep", etc.
+    targetValue: text("target_value"),
+    targetUnit: text("target_unit"),
+    currentValue: text("current_value"),
+    metricType: text("metric_type"), // links to bodyMetric.metricType for auto-tracking
+    status: healthGoalStatusEnum("status").default("active").notNull(),
+    startDate: date("start_date"),
+    targetDate: date("target_date"),
+
+    createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
+    updatedAt: timestamp("updated_at", { withTimezone: true })
+      .defaultNow()
+      .$onUpdate(() => new Date())
+      .notNull(),
+    deletedAt: timestamp("deleted_at", { withTimezone: true }),
+  },
+  (table) => [
+    index("idx_health_goal_user").on(table.userId),
+    index("idx_health_goal_status").on(table.status),
+    index("idx_health_goal_deleted").on(table.deletedAt),
+  ]
+);
+
+// ============================================
 // FUTURE TABLES
 // ============================================
 
@@ -1142,3 +1347,17 @@ export type NewAiConversation = typeof aiConversation.$inferInsert;
  */
 export type AiUsage = typeof aiUsage.$inferSelect;
 export type NewAiUsage = typeof aiUsage.$inferInsert;
+
+/**
+ * Health / Salute types
+ */
+export type SupplementProtocol = typeof supplementProtocol.$inferSelect;
+export type NewSupplementProtocol = typeof supplementProtocol.$inferInsert;
+export type Supplement = typeof supplement.$inferSelect;
+export type NewSupplement = typeof supplement.$inferInsert;
+export type BodyMetric = typeof bodyMetric.$inferSelect;
+export type NewBodyMetric = typeof bodyMetric.$inferInsert;
+export type HealthProfile = typeof healthProfile.$inferSelect;
+export type NewHealthProfile = typeof healthProfile.$inferInsert;
+export type HealthGoal = typeof healthGoal.$inferSelect;
+export type NewHealthGoal = typeof healthGoal.$inferInsert;

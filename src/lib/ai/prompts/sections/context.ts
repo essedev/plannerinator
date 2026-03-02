@@ -63,6 +63,27 @@ Timezone: ${temporal.timezone}`;
           content += `: ${stats.recentProjectNames.slice(0, 3).join(", ")}`;
         }
       }
+
+      // Health
+      if (
+        (stats.activeProtocolsCount && stats.activeProtocolsCount > 0) ||
+        stats.latestWeight ||
+        (stats.activeHealthGoalsCount && stats.activeHealthGoalsCount > 0)
+      ) {
+        content += `\n\n💊 SALUTE:`;
+        if (stats.activeProtocolsCount && stats.activeProtocolsCount > 0) {
+          content += `\n- ${stats.activeProtocolsCount} protocolli attivi`;
+        }
+        if (stats.activeSupplementsCount && stats.activeSupplementsCount > 0) {
+          content += `\n- ${stats.activeSupplementsCount} integratori attivi`;
+        }
+        if (stats.latestWeight) {
+          content += `\n- Ultimo peso: ${stats.latestWeight.value}kg (${stats.latestWeight.date})`;
+        }
+        if (stats.activeHealthGoalsCount && stats.activeHealthGoalsCount > 0) {
+          content += `\n- ${stats.activeHealthGoalsCount} obiettivo/i salute attivo/i`;
+        }
+      }
     } else {
       content += `
 
@@ -99,6 +120,27 @@ Timezone: ${temporal.timezone}`;
         content += `\n\n📁 ${stats.activeProjectsCount} active projects`;
         if (stats.recentProjectNames.length > 0) {
           content += `: ${stats.recentProjectNames.slice(0, 3).join(", ")}`;
+        }
+      }
+
+      // Health (EN)
+      if (
+        (stats.activeProtocolsCount && stats.activeProtocolsCount > 0) ||
+        stats.latestWeight ||
+        (stats.activeHealthGoalsCount && stats.activeHealthGoalsCount > 0)
+      ) {
+        content += `\n\n💊 HEALTH:`;
+        if (stats.activeProtocolsCount && stats.activeProtocolsCount > 0) {
+          content += `\n- ${stats.activeProtocolsCount} active protocols`;
+        }
+        if (stats.activeSupplementsCount && stats.activeSupplementsCount > 0) {
+          content += `\n- ${stats.activeSupplementsCount} active supplements`;
+        }
+        if (stats.latestWeight) {
+          content += `\n- Latest weight: ${stats.latestWeight.value}kg (${stats.latestWeight.date})`;
+        }
+        if (stats.activeHealthGoalsCount && stats.activeHealthGoalsCount > 0) {
+          content += `\n- ${stats.activeHealthGoalsCount} active health goal(s)`;
         }
       }
     }

@@ -10,3 +10,7 @@ export { updateNoteTool } from "./update-note";
 export { updateProjectTool } from "./update-project";
 export { deleteEntityTool } from "./delete-entity";
 export { getStatisticsTool } from "./get-statistics";
+export { manageSupplementProtocolTool } from "./manage-supplement-protocol";
+export { logBodyMetricTool } from "./log-body-metric";
+export { manageHealthGoalTool } from "./manage-health-goal";
+export { queryHealthStatusTool } from "./query-health-status";

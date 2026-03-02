@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { HubSwitcher } from "@/components/dashboard/HubSwitcher";
 import { ThemeToggle } from "@/components/layout/ThemeToggle";
 import {
   AlertDialog,
@@ -26,79 +27,12 @@ import {
   useSidebar,
 } from "@/components/ui/sidebar";
 import { signOut, useSession } from "@/lib/auth-client";
-import { hasPermission, type Permission } from "@/lib/permissions";
+import { hasPermission } from "@/lib/permissions";
+import { hubConfigs, getActiveHub } from "@/lib/hub";
 import type { AppUser } from "@/types/auth.d";
-import {
-  Calendar,
-  CheckSquare,
-  FileText,
-  FolderKanban,
-  LayoutDashboard,
-  LogOut,
-  Tag,
-  Trash2,
-  UserCircle,
-  Users,
-  type LucideIcon,
-} from "lucide-react";
+import { LogOut } from "lucide-react";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
-
-interface NavItem {
-  label: string;
-  href: string;
-  icon: LucideIcon;
-  permission?: Permission;
-}
-
-const navItems: NavItem[] = [
-  {
-    label: "Overview",
-    href: "/dashboard",
-    icon: LayoutDashboard,
-  },
-  {
-    label: "Tasks",
-    href: "/dashboard/tasks",
-    icon: CheckSquare,
-  },
-  {
-    label: "Events",
-    href: "/dashboard/events",
-    icon: Calendar,
-  },
-  {
-    label: "Notes",
-    href: "/dashboard/notes",
-    icon: FileText,
-  },
-  {
-    label: "Projects",
-    href: "/dashboard/projects",
-    icon: FolderKanban,
-  },
-  {
-    label: "Tags",
-    href: "/dashboard/tags",
-    icon: Tag,
-  },
-  {
-    label: "Trash",
-    href: "/dashboard/trash",
-    icon: Trash2,
-  },
-  {
-    label: "Profile",
-    href: "/dashboard/profile",
-    icon: UserCircle,
-  },
-  {
-    label: "Users",
-    href: "/dashboard/users",
-    icon: Users,
-    permission: "manage_users",
-  },
-];
 
 export function AppSidebar() {
   const pathname = usePathname();
@@ -107,8 +41,11 @@ export function AppSidebar() {
   const { state } = useSidebar();
   const user = session?.user as AppUser | undefined;
 
+  const activeHubId = getActiveHub(pathname);
+  const activeHub = hubConfigs[activeHubId];
+
   // Filtra nav items in base ai permessi
-  const visibleItems = navItems.filter((item) => {
+  const visibleItems = activeHub.navItems.filter((item) => {
     if (!item.permission) return true;
     if (!user) return false;
     return hasPermission(user.role, item.permission);
@@ -125,18 +62,10 @@ export function AppSidebar() {
 
   return (
     <Sidebar collapsible="icon">
-      {/* Header */}
+      {/* Header — Hub Switcher */}
       <SidebarHeader className="flex h-16 border-b border-sidebar-border p-0">
-        <div className="flex items-center px-4 w-full h-full">
-          {!isCollapsed ? (
-            <Link href="/dashboard" className="flex items-center space-x-2">
-              <span className="text-lg font-bold">Plannerinator</span>
-            </Link>
-          ) : (
-            <Link href="/dashboard" className="flex items-center justify-center w-full">
-              <span className="text-lg font-bold">P</span>
-            </Link>
-          )}
+        <div className="flex items-center px-2 w-full h-full">
+          <HubSwitcher isCollapsed={isCollapsed} />
         </div>
       </SidebarHeader>
 
@@ -146,7 +75,7 @@ export function AppSidebar() {
           {visibleItems.map((item) => {
             const isActive =
               pathname === item.href ||
-              (item.href !== "/dashboard" && pathname.startsWith(item.href));
+              (item.href !== activeHub.basePath && pathname.startsWith(item.href));
             const Icon = item.icon;
 
             return (

@@ -25,6 +25,12 @@ const pathLabels: Record<string, string> = {
   profile: "Profile",
   users: "Users",
   new: "New",
+  salute: "Salute",
+  integratori: "Integratori",
+  corpo: "Corpo",
+  routine: "Routine",
+  obiettivi: "Obiettivi",
+  finanza: "Finanza",
 };
 
 /**

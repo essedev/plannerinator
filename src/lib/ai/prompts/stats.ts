@@ -5,8 +5,16 @@
  */
 
 import { db } from "@/db";
-import { task, event, project } from "@/db/schema";
-import { eq, and, gte, lt, ne, isNull, sql } from "drizzle-orm";
+import {
+  task,
+  event,
+  project,
+  supplementProtocol,
+  supplement,
+  bodyMetric,
+  healthGoal,
+} from "@/db/schema";
+import { eq, and, gte, lt, ne, isNull, desc, sql } from "drizzle-orm";
 import type { UserStats } from "./types";
 
 /**
@@ -41,6 +49,10 @@ export async function getUserStats(userId: string): Promise<UserStats> {
     eventsTodayResult,
     eventsTomorrowResult,
     activeProjectsResult,
+    activeProtocolsResult,
+    activeSupplementsResult,
+    latestWeightResult,
+    activeGoalsResult,
   ] = await Promise.all([
     // Open tasks count
     db
@@ -157,7 +169,72 @@ export async function getUserStats(userId: string): Promise<UserStats> {
         )
       )
       .limit(5),
+
+    // Health: Active protocols count
+    db
+      .select({ count: sql<number>`count(*)` })
+      .from(supplementProtocol)
+      .where(
+        and(
+          eq(supplementProtocol.userId, userId),
+          eq(supplementProtocol.isActive, true),
+          isNull(supplementProtocol.deletedAt)
+        )
+      ),
+
+    // Health: Active supplements count
+    db
+      .select({ count: sql<number>`count(*)` })
+      .from(supplement)
+      .innerJoin(supplementProtocol, eq(supplement.protocolId, supplementProtocol.id))
+      .where(
+        and(
+          eq(supplement.userId, userId),
+          eq(supplement.isActive, true),
+          eq(supplementProtocol.isActive, true),
+          isNull(supplement.deletedAt),
+          isNull(supplementProtocol.deletedAt)
+        )
+      ),
+
+    // Health: Latest weight
+    db
+      .select({ value: bodyMetric.value, measuredAt: bodyMetric.measuredAt })
+      .from(bodyMetric)
+      .where(
+        and(
+          eq(bodyMetric.userId, userId),
+          eq(bodyMetric.metricType, "weight"),
+          isNull(bodyMetric.deletedAt)
+        )
+      )
+      .orderBy(desc(bodyMetric.measuredAt))
+      .limit(1),
+
+    // Health: Active goals count
+    db
+      .select({ count: sql<number>`count(*)` })
+      .from(healthGoal)
+      .where(
+        and(
+          eq(healthGoal.userId, userId),
+          eq(healthGoal.status, "active"),
+          isNull(healthGoal.deletedAt)
+        )
+      ),
   ]);
+
+  // Build latest weight info
+  let latestWeightInfo: { value: string; date: string } | undefined;
+  if (latestWeightResult[0]) {
+    const daysAgo = Math.floor(
+      (now.getTime() - new Date(latestWeightResult[0].measuredAt).getTime()) / (1000 * 60 * 60 * 24)
+    );
+    latestWeightInfo = {
+      value: latestWeightResult[0].value,
+      date: daysAgo === 0 ? "oggi" : daysAgo === 1 ? "ieri" : `${daysAgo} giorni fa`,
+    };
+  }
 
   return {
     tasksOpenCount: Number(openTasksResult[0]?.count ?? 0),
@@ -169,5 +246,9 @@ export async function getUserStats(userId: string): Promise<UserStats> {
     eventsTomorrow: Number(eventsTomorrowResult[0]?.count ?? 0),
     activeProjectsCount: activeProjectsResult.length,
     recentProjectNames: activeProjectsResult.map((p) => p.name),
+    activeProtocolsCount: Number(activeProtocolsResult[0]?.count ?? 0),
+    activeSupplementsCount: Number(activeSupplementsResult[0]?.count ?? 0),
+    latestWeight: latestWeightInfo,
+    activeHealthGoalsCount: Number(activeGoalsResult[0]?.count ?? 0),
   };
 }
