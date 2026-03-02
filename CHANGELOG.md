@@ -7,6 +7,35 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.21.0] - 2026-03-02
+
+### Added
+
+- Tool registry pattern (`src/lib/ai/tools/`) with self-contained tool definitions replacing 4 disconnected files
+- `defineTool()` helper and `AiToolDefinition<T>` type for type-safe tool creation with Zod schemas as single source of truth
+- Shared `resolveEntityId()` and `resolveProjectByName()` utilities eliminating duplicated resolution logic across handlers
+- Runtime input validation via Zod `safeParse()` for all AI tool calls (previously unvalidated `as` casts)
+- Tag processing in all create tools — `tags` field was declared in schemas but never wired to `assignTagsToEntity()`
+- Three missing `get_statistics` metrics: `tasks_completed_this_month`, `project_progress`, `tasks_by_priority`
+- Data-driven prompt tools section that auto-generates documentation from each tool's `promptDocs` field
+
+### Fixed
+
+- `create_event` calendar type bug — was hardcoded to invalid `"event"`, now correctly uses `"personal"`
+- `overdue_tasks` and `upcoming_events` statistics now exclude soft-deleted entities
+
+### Changed
+
+- AI tool JSON schemas generated automatically from Zod via `z.toJSONSchema()` instead of hand-written 636-line JSON
+- Tool dispatch uses O(1) Map lookup with validated input instead of switch/cast pattern
+- Prompt tools section is now data-driven from registry — no manual maintenance when adding tools
+
+### Removed
+
+- `src/lib/ai/functions.ts` (636 lines of manual JSON schema definitions)
+- `src/features/ai/types.ts` (222 lines of hand-written TypeScript types)
+- `src/features/ai/tool-handlers.ts` (1266 lines of switch/cast dispatch)
+
 ## [0.20.0] - 2026-03-02
 
 ### Added

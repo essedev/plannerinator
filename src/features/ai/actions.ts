@@ -10,8 +10,7 @@
 import { auth } from "@/lib/auth";
 import { db } from "@/db";
 import { aiConversation, aiUsage } from "@/db/schema";
-import { aiTools } from "@/lib/ai/functions";
-import { executeToolCall } from "./tool-handlers";
+import { aiTools, executeToolCall } from "@/lib/ai/tools/registry";
 import { eq, desc } from "drizzle-orm";
 import { aiLogger } from "@/lib/ai/logger";
 import {
