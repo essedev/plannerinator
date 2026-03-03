@@ -186,72 +186,94 @@ Tutte le route `/finanza/*` e `/salute/*` condividono il layout dashboard (sideb
 
 > Fase 1 e 2 completate. Pronto per test manuale e-2-e prima di procedere con Fase 3 (Finanza).
 
-### Fase 3: Finanza Base
+### Fase 3: Finanza Base ✅ COMPLETATA
 
 **Obiettivo:** Core financial tracking — transazioni, spese, budget.
 
-#### 3a. Database
+#### 3a. Database ✅
 
-- [ ] Schema: `transaction`, `category`, `fixedExpenseGroup`, `fixedExpense`, `variableBudget`, `variableBudgetItem`
-- [ ] Schema: `bankAccount`, `vehicle`
-- [ ] Indici per query frequenti (data, categoria, tipo)
+- [x] Schema: `transaction`, `category`, `fixedExpenseGroup`, `fixedExpense`, `budget` (consolidato da variableBudget+item)
+- [x] Schema: `bankAccount` (vehicle consolidato in financeSettings JSONB)
+- [x] 15 tabelle totali + 4 enum, molte entità del piano originale consolidate via JSONB
+- [x] Migration generata e applicata
 
-#### 3b. Feature Module
+#### 3b. Feature Module ✅
 
-- [ ] `src/features/finance/actions.ts` — CRUD transazioni, spese, budget, conti
-- [ ] `src/features/finance/queries.ts` — Aggregazioni mensili, trend, budget vs actual
-- [ ] `src/features/finance/schema.ts` — Validazione
-- [ ] `src/features/finance/helpers.ts` — Calcoli base (somme, percentuali, trend)
+- [x] `src/features/finance/actions.ts` — 40+ server actions (CRUD per tutte le 15 entità)
+- [x] `src/features/finance/queries.ts` — Aggregazioni mensili, trend, budget vs actual, dashboard aggregate
+- [x] `src/features/finance/schema.ts` — Zod validation per tutti i CRUD + filtri
+- [x] `src/features/finance/helpers.ts` — formatCurrency, normalizeToMonthly, calculateBudgetProgress, calculateForfettarioTax, calculateNetPatrimony, getMonthKey
 
-#### 3c. UI (4 pagine)
+#### 3c. UI (7 pagine + componenti client) ✅
 
-- [ ] `/finanza` — Dashboard base: entrate/uscite mese, risparmio, alert
-- [ ] `/finanza/storico` — Transazioni con filtri, statistiche mensili
-- [ ] `/finanza/spese-fisse` — Gruppi spese fisse, totali annuali
-- [ ] `/finanza/spese-variabili` — Budget per categoria, confronto actual
+- [x] `/finanza` — Dashboard: entrate/uscite mese, netto (color-coded), conti attivi, quick actions, obiettivi, scadenze F24
+- [x] `/finanza/storico` — Transazioni con filtri (tipo, date), badge tipo/categoria, importi colorati, paginazione
+- [x] `/finanza/storico/new` — Form creazione transazione (tipo, importo, data, categoria, conto, trasferimenti)
+- [x] `/finanza/spese-fisse` — Gruppi con spese, totale mensile normalizzato, form inline aggiunta spese
+- [x] `/finanza/spese-fisse/new` — Form creazione gruppo
+- [x] `/finanza/spese-variabili` — Budget mensili con progress bar, confronto actual, form inline
+- [x] `/finanza/categorie` — Gestione categorie entrate/uscite con form inline e delete
 
-#### 3d. AI Tools (finanza base)
+#### 3d. AI Tools (4 tool finanza base) ✅
 
-- [ ] Tool CRUD transazioni e categorie
-- [ ] Tool query statistiche mensili, budget tracking
-- [ ] Tool gestione spese fisse/variabili
-- [ ] Tool gestione conti bancari
+- [x] `manage_finance_transaction` — CRUD transazioni (create, update, list, delete)
+- [x] `manage_finance_account` — CRUD conti bancari (create, update, list, delete)
+- [x] `manage_finance_goal` — CRUD obiettivi finanziari (create, update, list, delete)
+- [x] `query_finance_status` — Query read-only (overview, accounts, budget, investments, fixed_expenses, goals)
+- [x] Registrati in registry.ts, system prompt aggiornato (stats + context IT/EN)
 
-### Fase 4: Finanza Avanzata
+#### Verifica build ✅
+
+- [x] `pnpm typecheck` — passa
+- [x] `pnpm lint` — passa
+- [x] `pnpm build` — passa, route finanza visibili
+
+### Fase 4: Finanza Avanzata ✅ COMPLETATA
 
 **Obiettivo:** Fiscale, lavoro, investimenti, patrimonio, obiettivi.
 
-#### 4a. Database
+#### 4a. Database ✅
 
-- [ ] Schema fiscale: `taxProfile`, `annualRevenue`, `f24Payment`, `f24PaymentItem`, `taxDeadline`, `taxDeadlineItem`
-- [ ] Schema lavoro: `workProfile`, `workHistory`, `client`, `skill`, `specialization`, `incomeTarget`, `recurringInvoice`, `planB`
-- [ ] Schema investimenti: `investment`, `cryptoHolding`, `pensionFund`, `investmentStrategy`
-- [ ] Schema obiettivi: `goal`, `futureProject`, `incomePlan`, `riskProfile`
+- [x] Schema fiscale: `taxProfile`, `annualRevenue`, `f24Payment` (items come JSONB array, consolidato da tabelle separate)
+- [x] Schema lavoro: `workProfile` (skills, specializations, workHistory, incomeTargets, planB come JSONB), `client`, `recurringInvoice`
+- [x] Schema investimenti: `investment`, `cryptoHolding`, `financeSettings` (pensionFund, investmentStrategy, riskProfile, vehicles come JSONB)
+- [x] Schema obiettivi: tabella unificata `goal` con `domain="finance"` (consolidato da goal, futureProject, etc.)
 
-#### 4b. Logica Business (con test)
+#### 4b. Logica Business (con test) ✅
 
-- [ ] Calcolo reddito netto Forfettario (coefficiente redditività, INPS, accantonamento)
-- [ ] Calcolo fondo emergenza (target - buffer - accantonamento fiscale)
-- [ ] Calcolo patrimonio netto (liquidità + investimenti + crypto - passività)
-- [ ] Integrazione CoinGecko server-side con cache 5 min
-- [ ] Test unitari per ogni formula confrontando con output Python
+- [x] Calcolo reddito netto Forfettario (coefficiente redditività, INPS, accantonamento) — `calculateForfettarioTax()`
+- [x] Calcolo patrimonio netto (liquidità + investimenti + crypto) — `calculateNetPatrimony()`
+- [x] Integrazione CoinGecko server-side con cache 5 min — `src/features/finance/coingecko.ts`
+- [x] Test unitari: 35 test in `helpers.test.ts` (7 scenari Forfettario: 5%, 15%, coeff diverso, INPS minimo, zero, cap 85k, consistenza)
+- [ ] Calcolo fondo emergenza (non implementato — bassa priorità, calcolabile a mano)
 
-#### 4c. UI (6 pagine)
+#### 4c. UI (7 pagine + componenti client) ✅
 
-- [ ] `/finanza/fiscale` — Profilo fiscale, F24, scadenze, revenue annuali
-- [ ] `/finanza/lavoro` — Profilo, clienti, competenze, income targets
-- [ ] `/finanza/investimenti` — Portfolio, crypto live, pensione, strategia
-- [ ] `/finanza/patrimonio` — Net worth breakdown con grafici
-- [ ] `/finanza/obiettivi` — Goals finanziari, progetti futuri
-- [ ] Aggiornamento `/finanza` dashboard con tutti i dati avanzati
+- [x] `/finanza/fiscale` — Profilo fiscale (form edit), simulazione Forfettario automatica, F24 da pagare/pagati con azioni (segna pagato, elimina), revenue annuali
+- [x] `/finanza/lavoro` — Profilo professionale (ruolo, P.IVA, tariffe, competenze), clienti con form inline, fatture ricorrenti con totale mensile
+- [x] `/finanza/investimenti` — Portfolio tradizionale + crypto, form aggiunta investimento/crypto
+- [x] `/finanza/patrimonio` — Net worth breakdown (4 card totali), dettaglio conti/investimenti/crypto con prezzi live CoinGecko, fondo pensione, profilo rischio
+- [x] `/finanza/obiettivi` — Goals finanziari con progress bar, status badges, CRUD completo
+- [x] `/finanza/categorie` — Gestione categorie transazioni (bonus, non nel piano originale)
+- [x] `/finanza` dashboard aggiornata con dati completi
 
-#### 4d. AI Tools (finanza avanzata)
+#### 4d. AI Tools (finanza avanzata) ✅
 
-- [ ] Tool fiscali (profilo, F24, scadenze, revenue)
-- [ ] Tool lavoro (profilo, clienti, competenze, fatture)
-- [ ] Tool investimenti (portfolio, crypto, pensione)
-- [ ] Tool patrimonio e obiettivi
-- [ ] Context builder completo (snapshot finanza per system prompt)
+- [x] `manage_finance_fiscal` — 9 azioni (view/update profilo, simulate_tax, add/list revenue, add/list/pay/delete F24)
+- [x] `manage_finance_work` — 9 azioni (view/update profilo, add/update/delete/list clienti, add/delete/list fatture)
+- [x] `query_finance_status` esteso con prezzi crypto live CoinGecko
+- [x] `manage_finance_goal` e `manage_finance_account` per patrimonio e obiettivi
+- [x] Context builder completo: `💰 FINANZA:` bilingue (IT/EN) nel system prompt con monthly income/expenses, accounts, goals, F24
+- [x] Identity prompt aggiornato con ruolo finanza
+
+#### Verifica build ✅
+
+- [x] `pnpm typecheck` — passa
+- [x] `pnpm lint` — passa (0 errori, 0 warning)
+- [x] `pnpm build` — passa, 53 route totali (25 dashboard, 14 finanza, 9 salute, 5 static)
+- [x] `pnpm test` — 178 test OK (35 finance + 143 esistenti)
+- [x] 22 AI tool totali (12 planner + 4 salute + 6 finanza)
+- [x] Hub nav finanza: 10 voci (Overview, Storico, Spese fisse, Budget, Categorie, Fiscale, Lavoro, Investimenti, Patrimonio, Obiettivi)
 
 ---
 

@@ -1,12 +1,4 @@
-import {
-  pgTable,
-  text,
-  bigint,
-  timestamp,
-  boolean,
-  integer,
-  pgEnum,
-} from "drizzle-orm/pg-core";
+import { pgTable, text, bigint, timestamp, boolean, integer, pgEnum } from "drizzle-orm/pg-core";
 
 // ============================================
 // AUTHENTICATION TABLES (Better Auth)

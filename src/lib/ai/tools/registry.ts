@@ -27,6 +27,12 @@ import {
   logBodyMetricTool,
   manageHealthGoalTool,
   queryHealthStatusTool,
+  manageFinanceTransactionTool,
+  manageFinanceAccountTool,
+  manageFinanceGoalTool,
+  queryFinanceStatusTool,
+  manageFinanceFiscalTool,
+  manageFinanceWorkTool,
 } from "./definitions";
 
 /**
@@ -49,6 +55,12 @@ export const allTools: AiToolDefinition[] = [
   logBodyMetricTool,
   manageHealthGoalTool,
   queryHealthStatusTool,
+  manageFinanceTransactionTool,
+  manageFinanceAccountTool,
+  manageFinanceGoalTool,
+  queryFinanceStatusTool,
+  manageFinanceFiscalTool,
+  manageFinanceWorkTool,
 ];
 
 /**

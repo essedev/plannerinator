@@ -144,11 +144,7 @@ export async function getHealthProfile(userId: string) {
 // ============================================
 
 export async function getHealthGoals(userId: string, statusFilter?: string) {
-  const conditions = [
-    eq(goal.userId, userId),
-    eq(goal.domain, "health"),
-    isNull(goal.deletedAt),
-  ];
+  const conditions = [eq(goal.userId, userId), eq(goal.domain, "health"), isNull(goal.deletedAt)];
 
   if (statusFilter) {
     conditions.push(

@@ -19,11 +19,7 @@ import { user } from "./auth";
 // FINANCE / FINANZA ENUMS
 // ============================================
 
-export const transactionTypeEnum = pgEnum("transaction_type", [
-  "income",
-  "expense",
-  "transfer",
-]);
+export const transactionTypeEnum = pgEnum("transaction_type", ["income", "expense", "transfer"]);
 
 export const accountTypeEnum = pgEnum("account_type", [
   "checking",
@@ -105,9 +101,7 @@ export const bankAccount = pgTable(
     name: text("name").notNull(),
     type: accountTypeEnum("type").default("checking").notNull(),
     currency: text("currency").default("EUR").notNull(),
-    initialBalance: numeric("initial_balance", { precision: 12, scale: 2 })
-      .default("0")
-      .notNull(),
+    initialBalance: numeric("initial_balance", { precision: 12, scale: 2 }).default("0").notNull(),
     isActive: boolean("is_active").default(true).notNull(),
     notes: text("notes"),
 

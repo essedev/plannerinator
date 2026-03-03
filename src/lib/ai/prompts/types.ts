@@ -35,6 +35,12 @@ export type UserStats = {
   activeSupplementsCount?: number;
   latestWeight?: { value: string; date: string };
   activeHealthGoalsCount?: number;
+  // Finance stats (optional)
+  monthlyIncome?: number;
+  monthlyExpenses?: number;
+  activeAccountsCount?: number;
+  activeFinanceGoalsCount?: number;
+  unpaidF24Count?: number;
 };
 
 /**

@@ -13,6 +13,9 @@ import {
   supplement,
   bodyMetric,
   goal,
+  transaction,
+  bankAccount,
+  f24Payment,
 } from "@/db/schema";
 import { eq, and, gte, lt, ne, isNull, desc, sql } from "drizzle-orm";
 import type { UserStats } from "./types";
@@ -53,6 +56,11 @@ export async function getUserStats(userId: string): Promise<UserStats> {
     activeSupplementsResult,
     latestWeightResult,
     activeGoalsResult,
+    monthlyIncomeResult,
+    monthlyExpensesResult,
+    activeAccountsResult,
+    activeFinanceGoalsResult,
+    unpaidF24Result,
   ] = await Promise.all([
     // Open tasks count
     db
@@ -223,6 +231,75 @@ export async function getUserStats(userId: string): Promise<UserStats> {
           isNull(goal.deletedAt)
         )
       ),
+
+    // Finance: Monthly income
+    db
+      .select({ total: sql<string>`coalesce(sum(${transaction.amount}), 0)` })
+      .from(transaction)
+      .where(
+        and(
+          eq(transaction.userId, userId),
+          eq(transaction.type, "income"),
+          gte(
+            transaction.date,
+            `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}-01`
+          ),
+          isNull(transaction.deletedAt)
+        )
+      ),
+
+    // Finance: Monthly expenses
+    db
+      .select({ total: sql<string>`coalesce(sum(${transaction.amount}), 0)` })
+      .from(transaction)
+      .where(
+        and(
+          eq(transaction.userId, userId),
+          eq(transaction.type, "expense"),
+          gte(
+            transaction.date,
+            `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}-01`
+          ),
+          isNull(transaction.deletedAt)
+        )
+      ),
+
+    // Finance: Active accounts count
+    db
+      .select({ count: sql<number>`count(*)` })
+      .from(bankAccount)
+      .where(
+        and(
+          eq(bankAccount.userId, userId),
+          eq(bankAccount.isActive, true),
+          isNull(bankAccount.deletedAt)
+        )
+      ),
+
+    // Finance: Active finance goals count
+    db
+      .select({ count: sql<number>`count(*)` })
+      .from(goal)
+      .where(
+        and(
+          eq(goal.userId, userId),
+          eq(goal.domain, "finance"),
+          eq(goal.status, "active"),
+          isNull(goal.deletedAt)
+        )
+      ),
+
+    // Finance: Unpaid F24 count
+    db
+      .select({ count: sql<number>`count(*)` })
+      .from(f24Payment)
+      .where(
+        and(
+          eq(f24Payment.userId, userId),
+          eq(f24Payment.isPaid, false),
+          isNull(f24Payment.deletedAt)
+        )
+      ),
   ]);
 
   // Build latest weight info
@@ -251,5 +328,10 @@ export async function getUserStats(userId: string): Promise<UserStats> {
     activeSupplementsCount: Number(activeSupplementsResult[0]?.count ?? 0),
     latestWeight: latestWeightInfo,
     activeHealthGoalsCount: Number(activeGoalsResult[0]?.count ?? 0),
+    monthlyIncome: parseFloat((monthlyIncomeResult[0] as { total: string })?.total ?? "0"),
+    monthlyExpenses: parseFloat((monthlyExpensesResult[0] as { total: string })?.total ?? "0"),
+    activeAccountsCount: Number(activeAccountsResult[0]?.count ?? 0),
+    activeFinanceGoalsCount: Number(activeFinanceGoalsResult[0]?.count ?? 0),
+    unpaidF24Count: Number(unpaidF24Result[0]?.count ?? 0),
   };
 }

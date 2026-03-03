@@ -7,6 +7,27 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.24.0] - 2026-03-03
+
+### Added
+
+- **Finanza (Finance) section** — complete personal finance management:
+  - Feature module `src/features/finance/` with server actions, queries, Zod validation schemas, helpers, and CoinGecko integration for crypto prices
+  - 9 new pages: dashboard with monthly stats, transaction history, fixed expenses, variable budget, categories, fiscal (tax/F24), work (invoicing/clients), investments, net worth, and finance goals with progress tracking
+  - 14 client components: forms for transactions, expenses, categories, F24 payments, revenue, invoices, clients, tax/work profiles, budgets, and goal actions
+  - Finance dashboard with real-time monthly income/expenses/net, active accounts overview, recent transactions, goal progress, and quick action links
+- 6 new AI tools: `manage_finance_transaction`, `manage_finance_account`, `manage_finance_goal`, `query_finance_status`, `manage_finance_fiscal`, `manage_finance_work` (22 total)
+- Finance context in AI system prompt — monthly income/expenses, active accounts, finance goals, and unpaid F24 alerts displayed bilingually (IT/EN)
+- Finance hub navigation: Categorie, Fiscale, Lavoro, Investimenti, Patrimonio pages added to sidebar
+- AI identity prompt updated to include finance management role (transactions, budget, fiscal, work, net worth)
+
+### Changed
+
+- DB schema files reformatted (import style cleanup in `auth.ts` and `finance.ts`)
+- Split schema architecture: auth and finance schemas in separate files under `src/db/schema/`
+- Unified goal system: `goal` table shared across health and finance with domain-specific fields
+- Documentation updated: `DATABASE_STRUCTURE.md` and `HUB_MIGRATION.md` reflect new finance tables and migration progress
+
 ## [0.23.0] - 2026-03-02
 
 ### Changed

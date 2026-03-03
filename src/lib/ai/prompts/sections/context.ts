@@ -84,6 +84,26 @@ Timezone: ${temporal.timezone}`;
           content += `\n- ${stats.activeHealthGoalsCount} obiettivo/i salute attivo/i`;
         }
       }
+
+      // Finance (IT)
+      if (
+        stats.monthlyIncome ||
+        stats.monthlyExpenses ||
+        (stats.activeAccountsCount && stats.activeAccountsCount > 0)
+      ) {
+        content += `\n\n💰 FINANZA:`;
+        content += `\n- Entrate mese: €${(stats.monthlyIncome ?? 0).toFixed(2)}`;
+        content += `\n- Uscite mese: €${(stats.monthlyExpenses ?? 0).toFixed(2)}`;
+        if (stats.activeAccountsCount && stats.activeAccountsCount > 0) {
+          content += `\n- ${stats.activeAccountsCount} conto/i attivo/i`;
+        }
+        if (stats.activeFinanceGoalsCount && stats.activeFinanceGoalsCount > 0) {
+          content += `\n- ${stats.activeFinanceGoalsCount} obiettivo/i finanziario/i attivo/i`;
+        }
+        if (stats.unpaidF24Count && stats.unpaidF24Count > 0) {
+          content += `\n- ⚠️ ${stats.unpaidF24Count} F24 da pagare`;
+        }
+      }
     } else {
       content += `
 
@@ -141,6 +161,26 @@ Timezone: ${temporal.timezone}`;
         }
         if (stats.activeHealthGoalsCount && stats.activeHealthGoalsCount > 0) {
           content += `\n- ${stats.activeHealthGoalsCount} active health goal(s)`;
+        }
+      }
+
+      // Finance (EN)
+      if (
+        stats.monthlyIncome ||
+        stats.monthlyExpenses ||
+        (stats.activeAccountsCount && stats.activeAccountsCount > 0)
+      ) {
+        content += `\n\n💰 FINANCE:`;
+        content += `\n- Monthly income: €${(stats.monthlyIncome ?? 0).toFixed(2)}`;
+        content += `\n- Monthly expenses: €${(stats.monthlyExpenses ?? 0).toFixed(2)}`;
+        if (stats.activeAccountsCount && stats.activeAccountsCount > 0) {
+          content += `\n- ${stats.activeAccountsCount} active account(s)`;
+        }
+        if (stats.activeFinanceGoalsCount && stats.activeFinanceGoalsCount > 0) {
+          content += `\n- ${stats.activeFinanceGoalsCount} active finance goal(s)`;
+        }
+        if (stats.unpaidF24Count && stats.unpaidF24Count > 0) {
+          content += `\n- ⚠️ ${stats.unpaidF24Count} unpaid F24 payment(s)`;
         }
       }
     }

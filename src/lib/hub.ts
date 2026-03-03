@@ -26,6 +26,10 @@ import {
   Landmark,
   PiggyBank,
   TrendingUp,
+  FileSpreadsheet,
+  Briefcase,
+  Building2,
+  Tags,
 } from "lucide-react";
 import type { Permission } from "@/lib/permissions";
 
@@ -95,7 +99,11 @@ export const hubConfigs: Record<HubId, HubConfig> = {
       { label: "Storico", href: "/finanza/storico", icon: Receipt },
       { label: "Spese fisse", href: "/finanza/spese-fisse", icon: Landmark },
       { label: "Budget", href: "/finanza/spese-variabili", icon: PiggyBank },
+      { label: "Categorie", href: "/finanza/categorie", icon: Tags },
+      { label: "Fiscale", href: "/finanza/fiscale", icon: FileSpreadsheet },
+      { label: "Lavoro", href: "/finanza/lavoro", icon: Briefcase },
       { label: "Investimenti", href: "/finanza/investimenti", icon: TrendingUp },
+      { label: "Patrimonio", href: "/finanza/patrimonio", icon: Building2 },
       { label: "Obiettivi", href: "/finanza/obiettivi", icon: Target },
     ],
   },
