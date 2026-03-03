@@ -5,7 +5,7 @@
  */
 
 import { db } from "@/db";
-import { supplementProtocol, supplement, bodyMetric, healthProfile, healthGoal } from "@/db/schema";
+import { supplementProtocol, supplement, bodyMetric, healthProfile, goal } from "@/db/schema";
 import { eq, and, isNull, desc, asc, gte, lte, sql } from "drizzle-orm";
 import { getSession } from "@/lib/auth";
 import { bodyMetricFilterSchema } from "./schema";
@@ -144,29 +144,33 @@ export async function getHealthProfile(userId: string) {
 // ============================================
 
 export async function getHealthGoals(userId: string, statusFilter?: string) {
-  const conditions = [eq(healthGoal.userId, userId), isNull(healthGoal.deletedAt)];
+  const conditions = [
+    eq(goal.userId, userId),
+    eq(goal.domain, "health"),
+    isNull(goal.deletedAt),
+  ];
 
   if (statusFilter) {
     conditions.push(
-      eq(healthGoal.status, statusFilter as "active" | "paused" | "completed" | "abandoned")
+      eq(goal.status, statusFilter as "active" | "paused" | "completed" | "abandoned")
     );
   }
 
   return db
     .select()
-    .from(healthGoal)
+    .from(goal)
     .where(and(...conditions))
-    .orderBy(desc(healthGoal.createdAt));
+    .orderBy(desc(goal.createdAt));
 }
 
 export async function getHealthGoalById(id: string, userId: string) {
-  const [goal] = await db
+  const [result] = await db
     .select()
-    .from(healthGoal)
-    .where(and(eq(healthGoal.id, id), eq(healthGoal.userId, userId), isNull(healthGoal.deletedAt)))
+    .from(goal)
+    .where(and(eq(goal.id, id), eq(goal.userId, userId), isNull(goal.deletedAt)))
     .limit(1);
 
-  return goal ?? null;
+  return result ?? null;
 }
 
 // ============================================

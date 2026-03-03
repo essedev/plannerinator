@@ -82,12 +82,17 @@ export default async function GoalDetailPage({ params }: Props) {
                 <span>{goal.targetDate}</span>
               </div>
             )}
-            {goal.metricType && (
-              <div className="flex justify-between">
-                <span className="text-muted-foreground">Metrica collegata</span>
-                <span>{goal.metricType}</span>
-              </div>
-            )}
+            {(() => {
+              const meta = goal.metadata as Record<string, unknown> | null;
+              const metricType = meta?.metricType;
+              if (!metricType) return null;
+              return (
+                <div className="flex justify-between">
+                  <span className="text-muted-foreground">Metrica collegata</span>
+                  <span>{String(metricType)}</span>
+                </div>
+              );
+            })()}
             <div className="flex justify-between">
               <span className="text-muted-foreground">Creato</span>
               <span>

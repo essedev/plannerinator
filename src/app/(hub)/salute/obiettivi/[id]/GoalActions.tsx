@@ -18,12 +18,12 @@ import {
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
 import { updateHealthGoal, deleteHealthGoal } from "@/features/health/actions";
-import type { HealthGoal } from "@/db/schema";
+import type { Goal } from "@/db/schema";
 import { MoreHorizontal, Trash2, Pause, Play, CheckCircle } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useState, useTransition } from "react";
 
-export function GoalActions({ goal }: { goal: HealthGoal }) {
+export function GoalActions({ goal }: { goal: Goal }) {
   const router = useRouter();
   const [isPending, startTransition] = useTransition();
   const [showDeleteDialog, setShowDeleteDialog] = useState(false);

@@ -1,7 +1,7 @@
 import { drizzle } from "drizzle-orm/neon-http";
 import { neon, Pool } from "@neondatabase/serverless";
 import { drizzle as drizzleWs } from "drizzle-orm/neon-serverless";
-import * as schema from "./schema";
+import * as schema from "./schema/index";
 
 const connectionString = process.env.DATABASE_URL;
 

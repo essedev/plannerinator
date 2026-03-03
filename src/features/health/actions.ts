@@ -1,7 +1,7 @@
 "use server";
 
 import { db } from "@/db";
-import { supplementProtocol, supplement, bodyMetric, healthProfile, healthGoal } from "@/db/schema";
+import { supplementProtocol, supplement, bodyMetric, healthProfile, goal } from "@/db/schema";
 import { eq, and } from "drizzle-orm";
 import { revalidatePath } from "next/cache";
 import { validateSession } from "@/lib/entity-helpers";
@@ -243,10 +243,16 @@ export async function createHealthGoal(input: unknown) {
   const session = await validateSession();
   const data = parseInput(createHealthGoalSchema, input);
 
+  // Extract metricType into metadata JSONB
+  const { metricType, ...goalData } = data;
+  const metadata = metricType ? { metricType } : {};
+
   const [created] = await db
-    .insert(healthGoal)
+    .insert(goal)
     .values({
-      ...data,
+      ...goalData,
+      domain: "health",
+      metadata,
       userId: session.user.id,
     })
     .returning();
@@ -262,13 +268,21 @@ export async function updateHealthGoal(id: string, input: unknown) {
 
   const [existing] = await db
     .select()
-    .from(healthGoal)
-    .where(and(eq(healthGoal.id, id), eq(healthGoal.userId, session.user.id)))
+    .from(goal)
+    .where(and(eq(goal.id, id), eq(goal.userId, session.user.id)))
     .limit(1);
 
-  if (!existing) throw errors.notFound("Health goal");
+  if (!existing) throw errors.notFound("Goal");
 
-  const [updated] = await db.update(healthGoal).set(data).where(eq(healthGoal.id, id)).returning();
+  // Handle metricType → metadata migration
+  const { metricType, ...updateData } = data;
+  const updatePayload: Record<string, unknown> = { ...updateData };
+  if (metricType !== undefined) {
+    const existingMeta = (existing.metadata as Record<string, unknown>) ?? {};
+    updatePayload.metadata = { ...existingMeta, metricType };
+  }
+
+  const [updated] = await db.update(goal).set(updatePayload).where(eq(goal.id, id)).returning();
 
   revalidatePath("/salute");
   revalidatePath("/salute/obiettivi");
@@ -281,13 +295,13 @@ export async function deleteHealthGoal(id: string) {
 
   const [existing] = await db
     .select()
-    .from(healthGoal)
-    .where(and(eq(healthGoal.id, id), eq(healthGoal.userId, session.user.id)))
+    .from(goal)
+    .where(and(eq(goal.id, id), eq(goal.userId, session.user.id)))
     .limit(1);
 
-  if (!existing) throw errors.notFound("Health goal");
+  if (!existing) throw errors.notFound("Goal");
 
-  await db.update(healthGoal).set({ deletedAt: new Date() }).where(eq(healthGoal.id, id));
+  await db.update(goal).set({ deletedAt: new Date() }).where(eq(goal.id, id));
 
   revalidatePath("/salute");
   revalidatePath("/salute/obiettivi");

@@ -12,7 +12,7 @@ import {
   supplementProtocol,
   supplement,
   bodyMetric,
-  healthGoal,
+  goal,
 } from "@/db/schema";
 import { eq, and, gte, lt, ne, isNull, desc, sql } from "drizzle-orm";
 import type { UserStats } from "./types";
@@ -214,12 +214,13 @@ export async function getUserStats(userId: string): Promise<UserStats> {
     // Health: Active goals count
     db
       .select({ count: sql<number>`count(*)` })
-      .from(healthGoal)
+      .from(goal)
       .where(
         and(
-          eq(healthGoal.userId, userId),
-          eq(healthGoal.status, "active"),
-          isNull(healthGoal.deletedAt)
+          eq(goal.userId, userId),
+          eq(goal.domain, "health"),
+          eq(goal.status, "active"),
+          isNull(goal.deletedAt)
         )
       ),
   ]);

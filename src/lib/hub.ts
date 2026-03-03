@@ -22,6 +22,10 @@ import {
   Pill,
   Target,
   ClipboardList,
+  Receipt,
+  Landmark,
+  PiggyBank,
+  TrendingUp,
 } from "lucide-react";
 import type { Permission } from "@/lib/permissions";
 
@@ -86,7 +90,14 @@ export const hubConfigs: Record<HubId, HubConfig> = {
     label: "Finanza",
     icon: Wallet,
     basePath: "/finanza",
-    navItems: [{ label: "Overview", href: "/finanza", icon: Wallet }],
+    navItems: [
+      { label: "Overview", href: "/finanza", icon: Wallet },
+      { label: "Storico", href: "/finanza/storico", icon: Receipt },
+      { label: "Spese fisse", href: "/finanza/spese-fisse", icon: Landmark },
+      { label: "Budget", href: "/finanza/spese-variabili", icon: PiggyBank },
+      { label: "Investimenti", href: "/finanza/investimenti", icon: TrendingUp },
+      { label: "Obiettivi", href: "/finanza/obiettivi", icon: Target },
+    ],
   },
 };
 
